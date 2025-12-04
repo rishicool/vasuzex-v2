@@ -28,90 +28,129 @@ V2 introduces a revolutionary approach to dependency management in monorepos:
 
 ### Prerequisites
 - Node.js >= 18.0.0
-- pnpm >= 10.0.0
+- pnpm >= 10.0.0 (will be installed automatically if missing)
 
-### Install pnpm (if not installed)
+### Quick Install
 ```bash
-npm install -g pnpm@10.0.0
+npx create-vasuzex my-app
 ```
 
-### Clone and Install
-```bash
-git clone https://github.com/rishicool/vasuzex.git vasuzex-v2
-cd vasuzex-v2
-pnpm install
-```
+That's it! The installer will:
+- ✅ Install pnpm if not present
+- ✅ Set up project structure
+- ✅ Configure hybrid dependencies
+- ✅ Install all dependencies (single node_modules)
+- ✅ Generate starter apps (optional)
 
-**Installation Time:** ~12 seconds  
-**Disk Space:** 247MB (vs 600-800MB in traditional monorepos)
+**Installation Time:** ~30 seconds  
+**Disk Space:** 250-300MB (vs 600-800MB in traditional monorepos)
 
 ---
 
 ## 🚀 Quick Start
 
-### Create Your First App
+### 1. Create New Project
 ```bash
-# Using the CLI
-npx vasuzex make:app my-api
-
-# Or manually create
-mkdir -p apps/my-api
-cd apps/my-api
+npx create-vasuzex my-app
+cd my-app
 ```
 
-### Minimal App Structure
-```
-apps/my-api/
-├── src/
-│   ├── index.js
-│   └── controllers/
-├── package.json  (only scripts, NO dependencies!)
-└── .env
-```
+### 2. Generate Your First App
+```bash
+# Full-stack app (API + Web)
+pnpm exec vasuzex generate:app blog
 
-### App package.json (Minimal!)
-```json
-{
-  "name": "my-api",
-  "version": "1.0.0",
-  "private": true,
-  "scripts": {
-    "dev": "nodemon src/index.js",
-    "start": "node src/index.js"
-  }
-}
+# API only
+pnpm exec vasuzex generate:app shop --type api
+
+# Web only  
+pnpm exec vasuzex generate:app admin --type web
 ```
 
-**No dependencies needed!** Apps automatically use hoisted dependencies from root.
-
-### Sample API (src/index.js)
-```javascript
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import { DB } from 'vasuzex/Database';
-
-const app = express();
-
-// Middleware (all from root node_modules)
-app.use(cors());
-app.use(helmet());
-app.use(express.json());
-
-// Database (GuruORM)
-const db = DB.connection();
-
-app.get('/users', async (req, res) => {
-  const users = await db.table('users').all();
-  res.json(users);
-});
-
-app.listen(3000, () => {
-  console.log('Server running on http://localhost:3000');
-});
+### 3. Run Database Migrations
+```bash
+pnpm db:migrate
 ```
 
-**All imports work automatically!** No need to install express, cors, helmet, etc.
+### 4. Start Development
+```bash
+# Start all apps
+pnpm dev
+
+# Or start specific app
+pnpm dev:blog-api    # API at http://localhost:3000
+pnpm dev:blog-web    # Web at http://localhost:5173
+```
+
+### 5. Generated Project Structure
+```
+my-app/
+├── apps/
+│   ├── blog/
+│   │   ├── api/             # Express API
+│   │   │   ├── src/
+│   │   │   ├── routes/
+│   │   │   └── package.json # Scripts only, NO dependencies
+│   │   └── web/             # React/Vue/Svelte app
+│   │       ├── src/
+│   │       └── package.json # Scripts only, NO dependencies
+├── config/                  # Framework config
+├── database/
+│   ├── models/              # GuruORM models
+│   ├── migrations/          # Database migrations
+│   └── seeders/             # Database seeders
+├── node_modules/            # Single hoisted node_modules
+├── package.json             # ALL dependencies here
+├── .npmrc                   # Hoisting config
+└── pnpm-workspace.yaml      # Workspace definition
+```
+
+**Key Point:** App `package.json` files contain ONLY scripts. All dependencies in root!
+
+---
+
+## 🎨 CLI Commands
+
+### Project Creation
+```bash
+npx create-vasuzex my-app              # Create new project
+```
+
+### App Generation
+```bash
+pnpm exec vasuzex generate:app blog              # Full-stack (prompts for framework)
+pnpm exec vasuzex generate:app shop --type api   # API only
+pnpm exec vasuzex generate:app admin --type web  # Web only (React/Vue/Svelte)
+```
+
+### Database Commands
+```bash
+pnpm db:migrate                        # Run migrations
+pnpm db:rollback                       # Rollback last migration
+pnpm db:seed                           # Run seeders
+pnpm db:fresh                          # Drop all tables & re-migrate
+```
+
+### Make Commands
+```bash
+pnpm exec vasuzex make:model User               # Create model
+pnpm exec vasuzex make:migration create_users   # Create migration
+pnpm exec vasuzex make:seeder UserSeeder        # Create seeder
+pnpm exec vasuzex make:controller UserController # Create controller
+```
+
+### Dependency Management
+```bash
+pnpm exec vasuzex add:dep axios         # Add dependency to root
+pnpm exec vasuzex delete:app blog       # Delete app completely
+```
+
+### Development
+```bash
+pnpm dev                               # Run all apps
+pnpm dev:blog-api                      # Run specific API
+pnpm dev:blog-web                      # Run specific web app
+```
 
 ---
 
