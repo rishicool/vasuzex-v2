@@ -1,0 +1,61 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+.pnpm-debug.log
+
+# Environment variables
+.env
+.env.local
+.env.development
+.env.production
+.env.staging
+.env.*.local
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+.turbo/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+coverage/
+.nyc_output/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Uploads (if using file uploads)
+uploads/*
+!uploads/.gitkeep
+
+# Database
+*.sqlite
+*.sqlite3
+*.db
+
+# OS
+.DS_Store
+Thumbs.db
+
+# App-specific node_modules
+apps/*/node_modules/
+framework/node_modules/
+vasuzex-final-test/

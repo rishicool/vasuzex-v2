@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@framework": ["./framework/index.js"],
+      "@framework/*": ["./framework/*"],
+      "@database": ["./database/index.js"],
+      "@database/*": ["./database/*"],
+      "@models": ["./database/models/index.js"],
+      "@models/*": ["./database/models/*"],
+      "@config": ["./config/index.cjs"],
+      "@config/*": ["./config/*"],
+      "@apps/*": ["./apps/*"]
+    },
+    "module": "esnext",
+    "moduleResolution": "node",
+    "target": "es2020",
+    "lib": ["es2020"],
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true
+  },
+  "exclude": ["node_modules", "dist", "build", ".turbo"]
+}

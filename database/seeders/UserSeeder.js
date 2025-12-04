@@ -1,0 +1,26 @@
+import { DB } from 'guruorm';
+
+export default class UserSeeder {
+  async run() {
+    // Example: Insert data using query builder
+    // await DB.table('users').insert({
+    //   name: 'Test User',
+    //   email: 'test@example.com'
+    // });
+
+    // Example: Using raw SQL
+    // await DB.insert('INSERT INTO users (name, email) VALUES (?, ?)', [
+    //   'Admin User',
+    //   'admin@example.com'
+    // ]);
+
+    // Example: Using Eloquent Model
+    // import { User } from '../models/User.js';
+    // await User.create({
+    //   name: 'Admin',
+    //   email: 'admin@example.com',
+    // });
+    
+    console.log('Seeded UserSeeder');
+  }
+}

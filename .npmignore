@@ -1,0 +1,65 @@
+# Development files
+.git/
+.github/
+.vscode/
+.idea/
+
+# Tests
+tests/
+*.test.js
+*.spec.js
+coverage/
+
+# Documentation (keep README.md)
+docs/
+examples/
+postman/
+
+# Build tools
+.turbo/
+tsconfig*.json
+.prettierrc
+.prettierignore
+.eslintrc*
+eslint.config.js
+
+# Environment
+.env*
+!.env.example
+
+# Logs
+*.log
+logs/
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Temporary
+tmp/
+temp/
+*.tmp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Workspace config
+pnpm-workspace.yaml
+turbo.json
+
+# Example/test apps (but keep starter apps)
+cronjobs/
+download/
+nginx/
+scripts/
+uploads/
+
+# Keep essential directories
+!framework/
+!packages/
+!config/
+!database/
+!apps/blog-api/
+!apps/media-server/
+!examples/

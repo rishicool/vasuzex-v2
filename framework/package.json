@@ -1,0 +1,12 @@
+{
+  "name": "@vasuzex/framework-core",
+  "version": "1.0.0",
+  "description": "Vasuzex Framework Core (Internal - not published separately)",
+  "type": "module",
+  "private": true,
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./*": "./*"
+  }
+}
