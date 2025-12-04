@@ -6,21 +6,20 @@
 import { existsSync } from 'fs';
 
 /**
- * Validate app type
+ * Validate app type (only when type is provided)
  */
 export function validateAppType(type) {
   const validTypes = ['api', 'web'];
   
+  // Type is optional - if not provided, generate both
   if (!type) {
-    console.error('❌ Error: --type is required (api or web)');
-    console.log('Usage: vasuzex generate:app <name> --type <api|web>');
-    console.log('Example: vasuzex generate:app blog --type api');
-    process.exit(1);
+    return true;
   }
   
   if (!validTypes.includes(type)) {
     console.error(`❌ Invalid app type: ${type}`);
     console.log('Valid types: api, web');
+    console.log('Tip: Omit --type to generate both API and Web');
     process.exit(1);
   }
   

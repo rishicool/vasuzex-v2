@@ -47,12 +47,44 @@ import {
  */
 export async function generateApp(name, options) {
   const type = options.type;
-  const framework = options.framework;
+  let framework = options.framework;
+  
+  // If no type specified, generate both API and Web
+  if (!type) {
+    console.log(`🚀 Generating Full Stack: ${name.toUpperCase()} (API + Web)\n`);
+    
+    // Generate API
+    await generateSingleApp(name, 'api', null);
+    
+    console.log('\n'); // Spacing between apps
+    
+    // Prompt for framework if not specified
+    if (!framework) {
+      const inquirer = (await import('inquirer')).default;
+      const answers = await inquirer.prompt([{
+        type: 'list',
+        name: 'framework',
+        message: 'Select web framework:',
+        choices: [
+          { name: 'React', value: 'react' },
+          { name: 'Vue', value: 'vue' },
+          { name: 'Svelte', value: 'svelte' },
+          { name: 'Plain HTML/JS', value: 'plain' },
+        ],
+      }]);
+      framework = answers.framework;
+    }
+    
+    // Generate Web
+    await generateSingleApp(name, 'web', framework);
+    
+    return;
+  }
   
   // Validate input
   validateAppType(type);
   
-  // Generate app
+  // Generate single app
   await generateSingleApp(name, type, framework);
 }
 

@@ -1,84 +1,118 @@
-# Vasuzex Framework Documentation
+# Vasuzex V2 Documentation
 
-> **⚠️ WARNING: DEVELOPMENT VERSION**  
-> This framework is currently under active development and is **NOT recommended for production use**.  
-> Use at your own risk. APIs may change without notice. Expect bugs and breaking changes.
+> **Version:** 2.0.0-alpha.1  
+> **Architecture:** Hybrid Dependency Management  
+> **Package Manager:** pnpm >= 10.0.0
 
-## Table of Contents
+Welcome to Vasuzex V2 - a Laravel-inspired Node.js framework with hybrid dependency management for monorepos.
+
+## Quick Links
 
 ### Getting Started
-- [Installation](getting-started/installation.md)
-- [Quick Start Guide](getting-started/quickstart.md)
-- [Configuration](getting-started/configuration.md)
-- [Directory Structure](getting-started/structure.md)
+- [Installation](getting-started/installation.md) - Install Vasuzex globally or use npx
+- [Quick Start](getting-started/quick-start.md) - Create your first project in 5 minutes
+- [Project Structure](getting-started/project-structure.md) - Understanding the file structure
 
-### CLI Reference
-- [CLI Commands](cli/commands.md) - Complete reference for all Vasuzex commands
+### CLI & Commands
+- [Complete CLI Reference](cli/commands.md) - All commands (create, generate, database, make, dependencies)
 
 ### Core Concepts
-- [Service Container](core/service-container.md)
-- [Service Providers](core/service-providers.md)
-- [Facades](core/facades.md)
-- [Import Aliases](core/import-aliases.md)
+- [Service Container](core/service-container.md) - Dependency injection
+- [Service Providers](core/service-providers.md) - Bootstrapping services
+- [Facades](core/facades.md) - Static proxy pattern
 
 ### Database
-- [Getting Started](database/getting-started.md)
-- [Query Builder](database/query-builder.md)
-- [Eloquent ORM](database/eloquent.md)
-- [Migrations](database/migrations.md)
-- [Seeding](database/seeding.md)
-- [Relationships](database/relationships.md)
+- [Getting Started](database/getting-started.md) - Database setup, models, migrations, seeders, queries
 
-### HTTP & Routing
-- [Routing](http/routing.md)
-- [Controllers](http/controllers.md)
-- [Requests](http/requests.md)
-- [Responses](http/responses.md)
-- [Middleware](http/middleware.md)
-- [Resources](http/resources.md)
+### Advanced
+- [Dependency Management Strategy](DEPENDENCY_MANAGEMENT_STRATEGY.md) - V2 hybrid dependencies explained
+- [Import Aliases](IMPORT_ALIASES.md) - Path alias configuration
 
-### Authentication & Authorization
-- [Authentication](auth/authentication.md)
-- [Authorization](auth/authorization.md)
-- [Password Hashing](auth/hashing.md)
+## What's New in V2?
 
-### Services
+### 🎯 Hybrid Dependency Management
+All dependencies centralized in root `package.json` - apps use hoisted packages from root `node_modules`.
 
-#### Core Services
-- [Cache](services/cache.md)
-- [Events](services/events.md)
-- [Logging](services/logging.md)
-- [Queue](services/queue.md)
-- [Session](services/session.md)
+**Benefits:**
+- 38% disk space savings
+- Faster installations
+- No version conflicts
+- Single source of truth
 
-#### Communication Services
-- [Mail](services/mail.md)
-- [SMS](services/sms.md)
-- [Notifications](services/notifications.md)
+### 📦 Minimal App Manifests
+App `package.json` files contain only scripts - no dependencies.
 
-#### Storage & Media
-- [File Storage](services/storage.md)
-- [File Upload](services/upload.md)
-- [Image Processing](services/image.md)
-- [Media Management](services/media.md)
+```json
+{
+  "name": "blog-api",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "nodemon src/index.js",
+    "start": "node src/index.js"
+  }
+}
+```
 
-#### Utilities
-- [Formatter](services/formatter.md)
-- [Validation](services/validation.md)
-- [Location Services](services/location.md)
-- [GeoIP](services/geoip.md)
-- [Encryption](services/encryption.md)
-- [Cookie](services/cookie.md)
+### ⚡ pnpm Hoisting
+Automatic hoisting configuration via `.npmrc`:
 
-### Advanced Topics
-- [Broadcasting](advanced/broadcasting.md)
-- [Translation](advanced/translation.md)
-- [Testing](advanced/testing.md)
-- [Deployment](advanced/deployment.md)
+```ini
+hoist=true
+shamefully-hoist=true
+shared-workspace-lockfile=true
+```
 
-### Starter Applications
-- [Blog API](starter-apps/blog-api.md)
-- [Media Server](starter-apps/media-server.md)
+### 🔄 Zero Breaking Changes
+All V1 APIs work in V2 - only dependency location changed.
 
-### API Reference
-- [Full API Reference](api/README.md)
+## Quick Start
+
+```bash
+# Create project
+npx create-vasuzex my-app
+
+# Generate full-stack app
+cd my-app
+pnpm exec vasuzex generate:app blog
+
+# Run migrations
+pnpm db:migrate
+
+# Start development
+pnpm dev:blog-api  # API at http://localhost:3000
+pnpm dev:blog-web  # Web at http://localhost:5173
+```
+
+## Architecture Overview
+
+```
+my-project/
+├── package.json              # ALL dependencies here
+├── node_modules/             # Single hoisted node_modules
+├── .npmrc                    # Hoisting configuration
+├── pnpm-workspace.yaml       # Workspace definition
+├── apps/
+│   ├── blog/
+│   │   ├── api/
+│   │   │   └── package.json  # Scripts only
+│   │   └── web/
+│   │       └── package.json  # Scripts only
+│   └── media-server/
+│       └── package.json      # Scripts only
+├── config/                   # Centralized config
+├── database/                 # Centralized database
+│   ├── models/
+│   ├── migrations/
+│   └── seeders/
+└── framework/                # Framework core (from vasuzex)
+```
+
+## Support
+
+- **GitHub:** [github.com/rishicool/vasuzex](https://github.com/rishicool/vasuzex)
+- **Issues:** [github.com/rishicool/vasuzex/issues](https://github.com/rishicool/vasuzex/issues)
+- **Version:** 2.0.0-alpha.1
+
+## License
+
+MIT License - see [LICENSE](../LICENSE) for details.

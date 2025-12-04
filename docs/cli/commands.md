@@ -75,9 +75,10 @@ npx create-vasuzex <project-name>
 
 1. **Choose starter template:**
    - Minimal (Empty project - generate apps later)
-   - With Blog API
-   - With Media Server
-   - Full Stack (Blog + Media)
+   - API Only (Backend)
+   - Web Only (Frontend)
+   - Full Stack (API + Web)
+   - API + Media Server
 
 2. **Choose database:**
    - PostgreSQL
@@ -193,7 +194,7 @@ apps/blog/
 
 1. ✅ Creates app directory structure
 2. ✅ Generates MVC boilerplate
-3. ✅ Creates `package.json` with dependencies
+3. ✅ Creates minimal `package.json` (scripts only, uses hoisted dependencies)
 4. ✅ Adds dev/start scripts to root `package.json`
 5. ✅ Sets up example routes and controllers
 6. ✅ Configures environment files

@@ -3,7 +3,6 @@
   "version": "2.0.0-alpha.1",
   "description": "Laravel-inspired framework for Node.js monorepos - V2 with optimized dependencies",
   "type": "module",
-  "private": true,
   "main": "./framework/index.js",
   "exports": {
     ".": "./framework/index.js",
@@ -20,8 +19,8 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "create-vasuzex": "./bin/create-vasuzex.js",
-    "vasuzex": "./framework/Console/cli.js"
+    "create-vasuzex": "bin/create-vasuzex.js",
+    "vasuzex": "framework/Console/cli.js"
   },
   "workspaces": [
     "apps/**/api",
@@ -108,7 +107,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/rishicool/vasuzex.git"
+    "url": "git+https://github.com/rishicool/vasuzex.git"
   },
   "bugs": {
     "url": "https://github.com/rishicool/vasuzex/issues"
