@@ -4,6 +4,8 @@
  * Global test configuration and utilities
  */
 
+import { jest } from '@jest/globals';
+
 // Global test timeout
 jest.setTimeout(10000);
 

@@ -3,3 +3,4 @@ export { ServiceProvider } from './ServiceProvider.js';
 export { Application } from './Application.js';
 export { BaseApp } from './BaseApp.js';
 export { BaseServer } from './BaseServer.js';
+export { BaseService } from './BaseService.js';

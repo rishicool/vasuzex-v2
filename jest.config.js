@@ -1,7 +1,6 @@
 export default {
   testEnvironment: 'node',
   transform: {},
-  extensionsToTreatAsEsm: ['.js'],
   moduleNameMapper: {
     '^#framework$': '<rootDir>/framework/index.js',
     '^#framework/(.*)$': '<rootDir>/framework/$1',

@@ -68,7 +68,7 @@ export class ImageController extends Controller {
    */
   getImage = async (req, res) => {
     try {
-      let imagePath = req.params[0];
+      let imagePath = Array.isArray(req.params.path) ? req.params.path.join("/") : req.params.path;
       let { w, h } = req.query;
 
       if (!imagePath) {
@@ -223,7 +223,7 @@ router.delete('/cache/clear', controller.clearExpiredCache);
  * - GET /image/uploads/products/123/photo.jpg (800x800)
  * - GET /image/uploads/products/123/photo.jpg?w=400&h=400 (400x400)
  */
-router.get('/*', controller.getImage);
+router.get('/{*path}', controller.getImage);
 
 export default router;
 `;
