@@ -4,32 +4,6 @@
  */
 
 /**
- * Generate jsconfig.json with path aliases
- */
-export function generateJSConfigTemplate() {
-  return `{
-  "compilerOptions": {
-    "baseUrl": ".",
-    "paths": {
-      "@root/*": ["../../../../*"],
-      "@database/*": ["../../../../database/*"],
-      "@models/*": ["../../../../database/models/*"],
-      "@config/*": ["./config/*"],
-      "@src/*": ["./src/*"],
-      "@controllers/*": ["./src/controllers/*"],
-      "@services/*": ["./src/services/*"],
-      "@middleware/*": ["./src/middleware/*"],
-      "@routes/*": ["./src/routes/*"],
-      "@requests/*": ["./src/requests/*"],
-      "@helpers/*": ["./src/helpers/*"]
-    }
-  },
-  "exclude": ["node_modules"]
-}
-`;
-}
-
-/**
  * Generate BaseController
  */
 export function generateBaseControllerTemplate() {
@@ -252,7 +226,7 @@ export function generateAuthServiceTemplate() {
 
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import User from '@models/User.js';
+import { User } from '../../../../database/index.js';
 
 export class AuthService {
   /**
@@ -353,7 +327,7 @@ export function generateAuthMiddlewareTemplate() {
  */
 
 import { AuthService } from '../services/AuthService.js';
-import User from '@models/User.js';
+import { User } from '../../../../database/index.js';
 
 export async function authMiddleware(req, res, next) {
   try {
