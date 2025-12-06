@@ -9,6 +9,9 @@
 
 ---
 
+## STRICT ❌ - NOT FOR PROD USE
+
+
 ## 🆕 What's New in V2?
 
 ### **Hybrid Dependency Management**
