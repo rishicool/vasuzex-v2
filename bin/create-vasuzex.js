@@ -565,35 +565,79 @@ async function initializeGit(targetDir) {
 function displaySuccessMessage(projectName, answers) {
   console.log(chalk.green('\n✅ Vasuzex V2 Project created successfully!\n'));
   console.log(chalk.cyan('🎉 Using hybrid dependency management - all deps in root node_modules\n'));
-  console.log(chalk.cyan('Next steps:\n'));
-  console.log(chalk.white(`  cd ${projectName}`));
-  console.log(chalk.white(`  pnpm install  ${chalk.gray('(if not done automatically)')}`));
   
-  if (answers.template === 'minimal') {
-    console.log(chalk.white(`  pnpm generate:app api  ${chalk.gray('(create your first app)')}`));
+  // Project structure info
+  console.log(chalk.bold.white('📁 Project Structure:'));
+  console.log(chalk.white(`  ${projectName}/`));
+  console.log(chalk.white(`    ├── config/          ${chalk.gray('All framework configurations')}`));
+  console.log(chalk.white(`    ├── database/        ${chalk.gray('Models, migrations, seeders')}`));
+  console.log(chalk.white(`    ├── apps/            ${chalk.gray('Your applications')}`));
+  if (answers.template === 'fullstack') {
+    console.log(chalk.white(`    │   └── ${answers.appName || 'blog'}/`));
+    console.log(chalk.white(`    │       ├── api/     ${chalk.gray('Backend API server')}`));
+    console.log(chalk.white(`    │       └── web/     ${chalk.gray(`Frontend ${answers.webFramework || 'React'} app`)}`));
+  } else if (answers.template === 'api-only') {
+    console.log(chalk.white(`    │   └── ${answers.appName || 'blog'}/api/  ${chalk.gray('Backend API server')}`));
+  } else if (answers.template === 'web-only') {
+    console.log(chalk.white(`    │   └── ${answers.appName || 'blog'}/web/  ${chalk.gray(`Frontend ${answers.webFramework || 'React'} app`)}`));
   }
+  console.log(chalk.white(`    ├── node_modules/    ${chalk.gray('Centralized dependencies')}`));
+  console.log(chalk.white(`    └── .env             ${chalk.gray('Environment configuration')}\n`));
   
+  console.log(chalk.cyan.bold('🚀 Next steps:\n'));
+  console.log(chalk.white(`  ${chalk.cyan('cd')} ${projectName}`));
+  console.log(chalk.white(`  ${chalk.cyan('pnpm install')}  ${chalk.gray('(if not done automatically)')}\n`));
+  
+  // Database setup
   if (answers.configureDatabaseNow) {
-    console.log(chalk.white(`  pnpm db:migrate`));
+    console.log(chalk.white(`  ${chalk.gray('# Database is configured, run migrations:')}`));
+    console.log(chalk.white(`  ${chalk.cyan('pnpm db:migrate')}\n`));
   } else {
-    console.log(chalk.gray(`  # Edit .env with your database credentials`));
-    console.log(chalk.white(`  pnpm db:migrate`));
+    console.log(chalk.white(`  ${chalk.gray('# Edit .env with your database credentials, then:')}`));
+    console.log(chalk.white(`  ${chalk.cyan('pnpm db:migrate')}\n`));
   }
   
-  if (answers.template !== 'minimal') {
-    console.log(chalk.white(`  cd apps/${answers.appName || 'blog'}/api`));
-    console.log(chalk.white(`  pnpm dev\n`));
-  } else {
-    console.log();
+  // Template-specific instructions
+  if (answers.template === 'fullstack') {
+    const appName = answers.appName || 'blog';
+    console.log(chalk.white(`  ${chalk.gray('# Start backend API (Terminal 1):')}`));
+    console.log(chalk.white(`  ${chalk.cyan(`cd apps/${appName}/api`)}`));
+    console.log(chalk.white(`  ${chalk.cyan('pnpm dev')}\n`));
+    
+    console.log(chalk.white(`  ${chalk.gray('# Start frontend web (Terminal 2):')}`));
+    console.log(chalk.white(`  ${chalk.cyan(`cd apps/${appName}/web`)}`));
+    console.log(chalk.white(`  ${chalk.cyan('pnpm dev')}\n`));
+    
+    console.log(chalk.green(`  ✨ API: http://localhost:3000`));
+    console.log(chalk.green(`  ✨ Web: http://localhost:3001\n`));
+  } else if (answers.template === 'api-only') {
+    console.log(chalk.white(`  ${chalk.gray('# Start API server:')}`));
+    console.log(chalk.white(`  ${chalk.cyan(`cd apps/${answers.appName || 'blog'}/api`)}`));
+    console.log(chalk.white(`  ${chalk.cyan('pnpm dev')}\n`));
+    console.log(chalk.green(`  ✨ API: http://localhost:3000\n`));
+  } else if (answers.template === 'web-only') {
+    console.log(chalk.white(`  ${chalk.gray('# Start web app:')}`));
+    console.log(chalk.white(`  ${chalk.cyan(`cd apps/${answers.appName || 'blog'}/web`)}`));
+    console.log(chalk.white(`  ${chalk.cyan('pnpm dev')}\n`));
+    console.log(chalk.green(`  ✨ Web: http://localhost:3001\n`));
+  } else if (answers.template === 'minimal') {
+    console.log(chalk.white(`  ${chalk.gray('# Generate your first app:')}`));
+    console.log(chalk.white(`  ${chalk.cyan('pnpm generate:app myapp --type api')}\n`));
   }
   
-  console.log(chalk.gray('Available commands:'));
-  console.log(chalk.white('  pnpm generate:app <name>     - Generate new app'));
+  // Available commands
+  console.log(chalk.gray.bold('📦 Available Commands:'));
+  console.log(chalk.white('  pnpm dev                     - Run all apps in dev mode'));
+  console.log(chalk.white('  pnpm generate:app <name>     - Generate new app (API/Web)'));
   console.log(chalk.white('  pnpm make:model <name>       - Create model'));
   console.log(chalk.white('  pnpm make:migration <name>   - Create migration'));
-  console.log(chalk.white('  pnpm db:migrate              - Run migrations\n'));
+  console.log(chalk.white('  pnpm make:seeder <name>      - Create seeder'));
+  console.log(chalk.white('  pnpm db:migrate              - Run migrations'));
+  console.log(chalk.white('  pnpm db:seed                 - Run seeders'));
+  console.log(chalk.white('  pnpm db:reset                - Fresh migrate + seed\n'));
   
   console.log(chalk.cyan('📖 Documentation: https://github.com/rishicool/vasuzex/tree/main/docs'));
+  console.log(chalk.cyan('🔧 Config files: All in ./config/ directory'));
   console.log(chalk.cyan('Happy coding! 🎉\n'));
 }
 
