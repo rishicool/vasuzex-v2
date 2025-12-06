@@ -197,6 +197,7 @@ async function createPackageJson(projectName, targetDir, spinner) {
     },
     keywords: ['vasuzex', 'nodejs', 'framework', 'v2'],
     dependencies: {
+      vasuzex: isLocalDev ? `file:${frameworkRoot}` : '^2.0.6',
       axios: '^1.13.2',
       bcrypt: '^6.0.0',
       bcryptjs: '^2.4.3',
@@ -218,6 +219,8 @@ async function createPackageJson(projectName, targetDir, spinner) {
       sharp: '^0.33.5',
       react: '^18.2.0',
       'react-dom': '^18.2.0',
+      'react-redux': '^9.1.0',
+      '@reduxjs/toolkit': '^2.0.1',
       vue: '^3.4.0',
       svelte: '^4.2.0'
     },

@@ -11,20 +11,14 @@ import {
 import {
   generateBaseControllerTemplate,
   generateAuthControllerTemplate,
-  generatePostControllerTemplate,
-  generateCommentControllerTemplate,
-  generateUserModelTemplate,
   generateAuthServiceTemplate,
   generateAuthMiddlewareTemplate,
   generateErrorHandlerTemplate,
   generateAuthRequestsTemplate,
   generateAuthRoutesTemplate,
-  generatePostRoutesTemplate,
   generateRoutesIndexTemplate,
   generateDatabaseConfigTemplate,
   generateEnvHelperTemplate,
-  generateUsersMigrationTemplate,
-  generateUserSeederTemplate,
   generateApiEnvTemplate,
 } from './apiTemplates.js';
 
@@ -34,15 +28,12 @@ import {
 export async function createAPIDirectoryStructure(targetDir) {
   const directories = [
     'src/controllers',
-    'src/models',
     'src/services',
     'src/middleware',
     'src/routes',
     'src/requests',
     'src/helpers',
     'config',
-    'database/migrations',
-    'database/seeders',
   ];
   
   await createDirectories(targetDir, directories);
@@ -64,28 +55,8 @@ export async function generateAPIControllers(targetDir) {
     generateAuthControllerTemplate()
   );
   
-  // PostController
-  await writeFileContent(
-    join(targetDir, 'src/controllers/PostController.js'),
-    generatePostControllerTemplate()
-  );
-  
-  // CommentController
-  await writeFileContent(
-    join(targetDir, 'src/controllers/CommentController.js'),
-    generateCommentControllerTemplate()
-  );
-}
-
-/**
- * Generate all API models
- */
-export async function generateAPIModels(targetDir) {
-  // User model
-  await writeFileContent(
-    join(targetDir, 'src/models/User.js'),
-    generateUserModelTemplate()
-  );
+  // Note: Post and Comment controllers removed - no models generated
+  // Users can create their own with: pnpm make:controller PostController
 }
 
 /**
@@ -137,13 +108,7 @@ export async function generateAPIRoutes(targetDir) {
     generateAuthRoutesTemplate()
   );
   
-  // Post routes
-  await writeFileContent(
-    join(targetDir, 'src/routes/post.routes.js'),
-    generatePostRoutesTemplate()
-  );
-  
-  // Routes index
+  // Routes index (no post routes - users can add their own)
   await writeFileContent(
     join(targetDir, 'src/routes/index.js'),
     generateRoutesIndexTemplate()
@@ -156,18 +121,19 @@ export async function generateAPIRoutes(targetDir) {
 export async function generateCompleteAPIStructure(targetDir) {
   await createAPIDirectoryStructure(targetDir);
   await generateAPIControllers(targetDir);
-  await generateAPIModels(targetDir);
+  // Models are in centralized database/models/ at project root
   await generateAPIServices(targetDir);
   await generateAPIMiddleware(targetDir);
   await generateAPIRequests(targetDir);
   await generateAPIRoutes(targetDir);
-  await generateDatabaseFiles(targetDir);
+  await generateDatabaseConfig(targetDir);
 }
 
 /**
- * Generate database configuration, migrations, and seeders
+ * Generate database configuration only
+ * Note: migrations and seeders are in centralized database/ at project root
  */
-export async function generateDatabaseFiles(targetDir) {
+export async function generateDatabaseConfig(targetDir) {
   // Config files
   await writeFileContent(
     join(targetDir, 'config/database.js'),
@@ -180,18 +146,9 @@ export async function generateDatabaseFiles(targetDir) {
     generateEnvHelperTemplate()
   );
   
-  // Migrations
-  const timestamp = new Date().toISOString().replace(/[-:T]/g, '_').split('.')[0];
-  await writeFileContent(
-    join(targetDir, `database/migrations/${timestamp}_create_users_table.js`),
-    generateUsersMigrationTemplate()
-  );
-  
-  // Seeders
-  await writeFileContent(
-    join(targetDir, 'database/seeders/UserSeeder.js'),
-    generateUserSeederTemplate()
-  );
+  // Note: Migrations and seeders should be created at project root using:
+  // pnpm make:migration create_posts_table
+  // pnpm make:seeder PostSeeder
   
   // .env.example
   await writeFileContent(

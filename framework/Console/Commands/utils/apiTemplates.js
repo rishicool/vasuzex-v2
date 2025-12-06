@@ -226,7 +226,7 @@ export function generateAuthServiceTemplate() {
 
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { User } from '../models/User.js';
+import User from '../../../database/models/User.js';
 
 export class AuthService {
   /**
@@ -327,7 +327,7 @@ export function generateAuthMiddlewareTemplate() {
  */
 
 import { AuthService } from '../services/AuthService.js';
-import { User } from '../models/User.js';
+import User from '../../../database/models/User.js';
 
 export async function authMiddleware(req, res, next) {
   try {
@@ -469,7 +469,6 @@ export function generateRoutesIndexTemplate() {
  */
 
 import { authRoutes } from './auth.routes.js';
-import postRoutes from './post.routes.js';
 
 /**
  * Health check route (can be used separately)
@@ -491,9 +490,8 @@ export function getAllRoutes() {
   return [
     { path: '/health', handler: healthRoutes },
     { path: '/api/auth', router: authRoutes },
-    { path: '/api/posts', router: postRoutes },
     // Add more routes here as your app grows
-    // { path: '/api/users', router: userRoutes },
+    // Example: { path: '/api/posts', router: postRoutes },
   ];
 }
 `;
