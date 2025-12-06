@@ -17,6 +17,8 @@
     "./Support/Facades": "./framework/Support/Facades/index.js",
     "./Support/Facades/*": "./framework/Support/Facades/*.js",
     "./Services/*": "./framework/Services/*/index.js",
+    "./client": "./frontend/client/index.js",
+    "./client/*": "./frontend/client/*.js",
     "./package.json": "./package.json"
   },
   "bin": {

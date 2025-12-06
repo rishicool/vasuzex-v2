@@ -226,7 +226,7 @@ export function generateAuthServiceTemplate() {
 
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import User from '../../../database/models/User.js';
+import User from '../../../../database/models/User.js';
 
 export class AuthService {
   /**
@@ -327,7 +327,7 @@ export function generateAuthMiddlewareTemplate() {
  */
 
 import { AuthService } from '../services/AuthService.js';
-import User from '../../../database/models/User.js';
+import User from '../../../../database/models/User.js';
 
 export async function authMiddleware(req, res, next) {
   try {

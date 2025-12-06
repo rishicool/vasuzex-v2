@@ -743,7 +743,7 @@ export const store = configureStore({
 export const persistor = persistStore(store);`,
 
     authSlice: `import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { createApiClient } from '@vasuzex/client';
+import { createApiClient } from 'vasuzex/client';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 

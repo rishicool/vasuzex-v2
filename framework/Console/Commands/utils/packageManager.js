@@ -66,9 +66,8 @@ export async function createAppPackageJson(appName, appType, targetDir, framewor
       'db:migrate': 'node -e "console.log(\'Run migrations from project root: pnpm db:migrate\')"',
     };
     
-    // API dependencies
+    // API dependencies - vasuzex is hoisted from root, no need to declare
     packageJson.dependencies = {
-      'vasuzex': 'workspace:*',
       'express': '^5.2.1',
       'bcryptjs': '^2.4.3',
       'jsonwebtoken': '^9.0.3',
@@ -99,8 +98,7 @@ export async function createAppPackageJson(appName, appType, targetDir, framewor
         'react-dom': '^18.2.0',
         'react-router-dom': '^6.28.0',
         '@reduxjs/toolkit': '^2.5.0',
-        'redux-persist': '^6.0.0',
-        '@vasuzex/client': 'workspace:*'
+        'redux-persist': '^6.0.0'
       };
       
       packageJson.devDependencies = {
