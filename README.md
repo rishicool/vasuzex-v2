@@ -52,63 +52,164 @@ That's it! The installer will:
 
 ## 🚀 Quick Start
 
-### 1. Create New Project
+### Option 1: Full Stack App (Recommended)
+
+Create a complete full stack application with API backend + Web frontend:
+
 ```bash
+# Create project
 npx create-vasuzex my-app
+
+# Choose "Full Stack (API + Web)" template
+# Select web framework (React/Vue/Svelte)
+# Configure database (PostgreSQL/MySQL/SQLite)
+
 cd my-app
+
+# All config files are automatically copied to ./config/
+# All dependencies installed in root node_modules/
+
+# Run migrations
+pnpm db:migrate
+
+# Terminal 1 - Start API server
+cd apps/blog/api
+pnpm dev
+
+# Terminal 2 - Start web app
+cd apps/blog/web
+pnpm dev
 ```
 
-### 2. Generate Your First App
+- ✅ API Server: http://localhost:3000
+- ✅ Web App: http://localhost:3001
+- ✅ All configs in `./config/` directory
+
+### Option 2: Manual App Generation
+
 ```bash
-# Full-stack app (API + Web)
-pnpm exec vasuzex generate:app blog
+# 1. Create minimal project
+npx create-vasuzex my-app
+cd my-app
 
-# API only
+# 2. Generate apps manually
+pnpm exec vasuzex generate:app blog --type fullstack
+# or
 pnpm exec vasuzex generate:app shop --type api
-
-# Web only  
 pnpm exec vasuzex generate:app admin --type web
 ```
 
-### 3. Run Database Migrations
-```bash
-pnpm db:migrate
-```
+### Project Structure After Installation
 
-### 4. Start Development
-```bash
-# Start all apps
-pnpm dev
-
-# Or start specific app
-pnpm dev:blog-api    # API at http://localhost:3000
-pnpm dev:blog-web    # Web at http://localhost:5173
-```
-
-### 5. Generated Project Structure
 ```
 my-app/
+├── config/                   # ⭐ ALL framework configs copied here
+│   ├── app.cjs              # Application settings
+│   ├── auth.cjs             # JWT authentication
+│   ├── database.cjs         # Database connections
+│   ├── filesystems.cjs      # File storage (S3, Local)
+│   ├── mail.cjs             # Email settings
+│   ├── cache.cjs            # Cache drivers
+│   ├── queue.cjs            # Queue jobs
+│   ├── session.cjs          # Sessions
+│   ├── http.cjs             # HTTP server
+│   ├── upload.cjs           # File uploads
+│   ├── media.cjs            # Media processing
+│   ├── image.cjs            # Image manipulation
+│   ├── sms.cjs              # SMS services
+│   ├── payment.cjs          # Payment gateways
+│   ├── translation.cjs      # Multi-language
+│   └── ... (20+ config files)
+│
 ├── apps/
-│   ├── blog/
-│   │   ├── api/             # Express API
-│   │   │   ├── src/
-│   │   │   ├── routes/
-│   │   │   └── package.json # Scripts only, NO dependencies
-│   │   └── web/             # React/Vue/Svelte app
-│   │       ├── src/
-│   │       └── package.json # Scripts only, NO dependencies
-├── config/                  # Framework config
+│   └── blog/
+│       ├── api/             # Backend Express server
+│       │   ├── src/
+│       │   │   ├── controllers/    # HTTP controllers
+│       │   │   ├── services/       # Business logic
+│       │   │   ├── middleware/     # Auth, validation
+│       │   │   ├── routes/         # API routes
+│       │   │   └── models/         # Database models
+│       │   ├── index.js            # Server entry point
+│       │   └── package.json        # Scripts only (no deps)
+│       │
+│       └── web/             # Frontend React/Vue/Svelte
+│           ├── src/
+│           │   ├── components/
+│           │   ├── pages/
+│           │   └── services/       # API client
+│           ├── index.html
+│           ├── vite.config.js
+│           └── package.json        # Scripts only (no deps)
+│
 ├── database/
-│   ├── models/              # GuruORM models
+│   ├── models/              # Shared GuruORM models
 │   ├── migrations/          # Database migrations
 │   └── seeders/             # Database seeders
-├── node_modules/            # Single hoisted node_modules
-├── package.json             # ALL dependencies here
-├── .npmrc                   # Hoisting config
-└── pnpm-workspace.yaml      # Workspace definition
+│
+├── node_modules/            # ⭐ Single hoisted node_modules (all deps)
+├── package.json             # ⭐ ALL dependencies defined here
+├── .env                     # Root environment config
+├── pnpm-workspace.yaml      # Workspace definition
+└── turbo.json               # Build pipeline config
 ```
 
-**Key Point:** App `package.json` files contain ONLY scripts. All dependencies in root!
+**Key Features:**
+- ✅ **All configs in `./config/`** - Easily customize any framework feature
+- ✅ **Single `node_modules/`** - 64% disk space savings
+- ✅ **Centralized dependencies** - Manage versions in one place
+- ✅ **Zero config for apps** - Apps inherit all dependencies
+
+---
+
+## 🎯 Full Stack Development
+
+Vasuzex V2 makes full stack development seamless:
+
+### Backend API (Express)
+```javascript
+// apps/blog/api/index.js
+import { BaseApp } from 'vasuzex';
+
+class BlogServer extends BaseApp {
+  async setupRoutes() {
+    this.app.use('/api', getAllRoutes());
+  }
+}
+
+const server = new BlogServer();
+await server.start();
+```
+
+### Frontend Web (React/Vue/Svelte)
+```javascript
+// apps/blog/web/src/services/api.js
+import { createApiClient } from '@vasuzex/client';
+
+export const api = createApiClient({
+  baseURL: 'http://localhost:3000/api'
+});
+
+// Usage
+const posts = await api.get('/posts');
+const newPost = await api.post('/posts', { title: 'Hello' });
+```
+
+### Authentication Flow
+```javascript
+// Backend: Auto-generated AuthController
+POST /api/auth/register  // Register new user
+POST /api/auth/login     // Login (returns JWT)
+GET  /api/auth/me        // Get authenticated user
+POST /api/auth/logout    // Logout
+
+// Frontend: Auto-configured API client
+const { data } = await api.post('/auth/login', credentials);
+localStorage.setItem('token', data.token);
+api.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
+```
+
+📖 **[Full Stack Guide →](./docs/getting-started/fullstack-guide.md)**
 
 ---
 
