@@ -15,6 +15,7 @@
     "./Support": "./framework/Support/index.js",
     "./Support/*": "./framework/Support/*.js",
     "./Support/Facades": "./framework/Support/Facades/index.js",
+    "./Support/Facades/*": "./framework/Support/Facades/*.js",
     "./Services/*": "./framework/Services/*/index.js",
     "./package.json": "./package.json"
   },
@@ -48,10 +49,10 @@
     "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch",
     "test:coverage": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
     "db:migrate": "npx vasuzex migrate",
-    "test:all": "npx jest --config=jest.config.test.cjs",
-    "test:unit": "npx jest --config=jest.config.test.cjs tests/unit",
-    "test:integration": "npx jest --config=jest.config.test.cjs tests/integration",
-    "test:e2e": "npx jest --config=jest.config.test.cjs tests/e2e",
+    "test:all": "NODE_OPTIONS=--experimental-vm-modules npx jest",
+    "test:unit": "NODE_OPTIONS=--experimental-vm-modules npx jest tests/unit",
+    "test:integration": "NODE_OPTIONS=--experimental-vm-modules npx jest tests/integration",
+    "test:e2e": "NODE_OPTIONS=--experimental-vm-modules npx jest tests/e2e",
     "scan:issues": "node deep-scan-issues.cjs"
   },
   "keywords": [

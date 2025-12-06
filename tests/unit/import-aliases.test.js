@@ -4,7 +4,7 @@
  * Tests specific import patterns and edge cases with 100% coverage
  */
 
-import { describe, test, expect, beforeEach } from '@jest/globals';
+import { describe, it, expect, beforeEach, test } from '@jest/globals';
 
 describe('Unit: Import Alias Patterns', () => {
   

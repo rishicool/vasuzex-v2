@@ -4,6 +4,7 @@
  * Test suite for the ClientConfigGenerator class
  */
 
+import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import { ClientConfigGenerator } from '../../framework/Http/ClientConfigGenerator.js';
 import Config from '../../framework/Support/Facades/Config.js';
 
