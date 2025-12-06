@@ -100,7 +100,7 @@ export async function createAppPackageJson(appName, appType, targetDir, framewor
         'react-router-dom': '^6.28.0',
         '@reduxjs/toolkit': '^2.5.0',
         'redux-persist': '^6.0.0',
-        '@vasuzex/client': '^2.0.0'
+        '@vasuzex/client': 'workspace:*'
       };
       
       packageJson.devDependencies = {

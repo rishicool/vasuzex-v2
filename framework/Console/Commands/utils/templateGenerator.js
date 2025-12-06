@@ -11,10 +11,20 @@ function capitalize(str) {
 }
 
 /**
+ * Convert kebab-case or snake_case to PascalCase for class names
+ */
+function toPascalCase(str) {
+  return str
+    .split(/[-_]/)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join('');
+}
+
+/**
  * Generate BaseApp class template
  */
 export function generateAppTemplate(appName) {
-  const className = capitalize(appName) + 'App';
+  const className = toPascalCase(appName) + 'App';
   
   return `/**
  * ${capitalize(appName)} API Application
@@ -90,7 +100,7 @@ export function createApp() {
  * Generate BaseServer class template
  */
 export function generateServerTemplate(appName) {
-  const className = capitalize(appName) + 'Server';
+  const className = toPascalCase(appName) + 'Server';
   
   return `/**
  * ${capitalize(appName)} Server

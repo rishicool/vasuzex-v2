@@ -53,7 +53,11 @@
     "test:unit": "NODE_OPTIONS=--experimental-vm-modules npx jest tests/unit",
     "test:integration": "NODE_OPTIONS=--experimental-vm-modules npx jest tests/integration",
     "test:e2e": "NODE_OPTIONS=--experimental-vm-modules npx jest tests/e2e",
-    "scan:issues": "node deep-scan-issues.cjs"
+    "scan:issues": "node deep-scan-issues.cjs",
+    "dev:pilot-test-api": "turbo run dev --filter=pilot-test-api",
+    "start:pilot-test-api": "turbo run start --filter=pilot-test-api",
+    "dev:pilot-test-web": "turbo run dev --filter=pilot-test-web",
+    "start:pilot-test-web": "turbo run start --filter=pilot-test-web"
   },
   "keywords": [
     "framework",
