@@ -2,4 +2,8 @@ export { Request } from './Request.js';
 export { Response } from './Response.js';
 export { Controller } from './Controller.js';
 export { FormRequest } from './Requests/index.js';
+export { ClientConfigGenerator } from './ClientConfigGenerator.js';
 export { requestResponseMiddleware } from './Middleware/RequestResponseMiddleware.js';
+export { SecurityMiddleware, createSecurityMiddleware, applySecurityMiddleware } from './Middleware/SecurityMiddleware.js';
+export { MediaServerMiddleware, mediaServer } from './Middleware/MediaServerMiddleware.js';
+export * from './Middleware/index.js';

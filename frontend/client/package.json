@@ -1,0 +1,84 @@
+{
+  "name": "@vasuzex/client",
+  "version": "2.0.0",
+  "description": "Framework-agnostic JavaScript utilities for Vasuzex v2 frontend applications",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./Http": {
+      "import": "./dist/Http/index.js",
+      "require": "./dist/Http/index.cjs"
+    },
+    "./Config": {
+      "import": "./dist/Config/index.js",
+      "require": "./dist/Config/index.cjs"
+    },
+    "./Validation": {
+      "import": "./dist/Validation/index.js",
+      "require": "./dist/Validation/index.cjs"
+    },
+    "./Formatters": {
+      "import": "./dist/Formatters/index.js",
+      "require": "./dist/Formatters/index.cjs"
+    },
+    "./Storage": {
+      "import": "./dist/Storage/index.js",
+      "require": "./dist/Storage/index.cjs"
+    },
+    "./Alerts": {
+      "import": "./dist/Alerts/index.js",
+      "require": "./dist/Alerts/index.cjs"
+    },
+    "./Errors": {
+      "import": "./dist/Errors/index.js",
+      "require": "./dist/Errors/index.cjs"
+    }
+  },
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "jest",
+    "test:coverage": "jest --coverage"
+  },
+  "keywords": [
+    "vasuzex",
+    "frontend",
+    "utilities",
+    "api-client",
+    "validators",
+    "formatters",
+    "framework-agnostic"
+  ],
+  "author": "Vasuzex Team",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.7.0"
+  },
+  "peerDependencies": {
+    "sweetalert2": "^11.0.0",
+    "yup": "^1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "yup": {
+      "optional": true
+    },
+    "sweetalert2": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^30.2.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.9.3"
+  }
+}

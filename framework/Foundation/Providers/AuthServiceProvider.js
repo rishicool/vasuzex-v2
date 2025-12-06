@@ -3,7 +3,7 @@
  * Register Authentication service
  */
 
-import { AuthManager } from '../../Auth/AuthManager.js';
+import { AuthManager } from '#framework/Auth/AuthManager.js';
 
 export class AuthServiceProvider {
   constructor(app) {

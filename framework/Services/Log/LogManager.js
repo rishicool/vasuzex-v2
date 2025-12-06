@@ -5,6 +5,7 @@
 
 import { ConsoleLogger } from './Drivers/ConsoleLogger.js';
 import { FileLogger } from './Drivers/FileLogger.js';
+import { SyslogLogger } from './Drivers/SyslogLogger.js';
 
 export class LogManager {
   constructor(app) {
@@ -75,7 +76,8 @@ export class LogManager {
    */
   createConsoleDriver(config) {
     return new ConsoleLogger({
-      level: config.level || 'debug'
+      level: config.level || 'debug',
+      colors: config.colors !== false
     });
   }
 
@@ -87,7 +89,21 @@ export class LogManager {
       path: config.path || 'storage/logs',
       filename: config.filename || 'app.log',
       level: config.level || 'debug',
-      days: config.days || 7
+      days: config.days || 14,
+      rotation: config.rotation || 'daily',
+      maxSize: config.maxSize || 10 * 1024 * 1024
+    });
+  }
+
+  /**
+   * Create syslog driver
+   */
+  createSyslogDriver(config) {
+    return new SyslogLogger({
+      facility: config.facility || 'local0',
+      ident: config.ident || 'vasuzex',
+      level: config.level || 'info',
+      useSyslogCommand: config.useSyslogCommand !== false
     });
   }
 

@@ -3,7 +3,7 @@
  * Laravel-inspired hash service provider
  */
 
-import { HashManager } from '../../Services/Hash/HashManager.js';
+import { HashManager } from '#framework/Services/Hash/HashManager.js';
 
 export class HashServiceProvider {
   constructor(app) {

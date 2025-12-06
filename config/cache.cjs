@@ -36,6 +36,17 @@ module.exports = {
       prefix: 'cache:'
     },
 
+    memory: {
+      driver: 'memory',
+      prefix: env('CACHE_PREFIX', 'vasuzex_cache:')
+    },
+
+    file: {
+      driver: 'file',
+      path: 'storage/framework/cache',
+      prefix: env('CACHE_PREFIX', 'vasuzex_cache:')
+    },
+
     redis: {
       driver: 'redis',
       connection: 'cache',

@@ -2,7 +2,7 @@
  * GeoIP Service Provider
  */
 
-import { ServiceProvider } from '../../Foundation/ServiceProvider.js';
+import { ServiceProvider } from '#framework/Foundation/ServiceProvider.js';
 import { GeoIPManager } from './GeoIPManager.js';
 
 export class GeoIPServiceProvider extends ServiceProvider {

@@ -3,7 +3,7 @@
  * Laravel-inspired log service provider
  */
 
-import { LogManager } from '../../Services/Log/LogManager.js';
+import { LogManager } from '#framework/Services/Log/LogManager.js';
 
 export class LogServiceProvider {
   constructor(app) {

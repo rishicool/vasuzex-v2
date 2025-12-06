@@ -2,7 +2,7 @@
  * Formatter Service Provider
  */
 
-import { ServiceProvider } from '../../Foundation/ServiceProvider.js';
+import { ServiceProvider } from '#framework/Foundation/ServiceProvider.js';
 import { FormatterManager } from './FormatterManager.js';
 
 export class FormatterServiceProvider extends ServiceProvider {

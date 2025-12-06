@@ -5,7 +5,7 @@
  * Similar to Laravel's LoadEnvironmentVariables bootstrap.
  */
 
-import { ConfigLoader } from '../../Support/ConfigLoader.js';
+import { ConfigLoader } from '#framework/Support/ConfigLoader.js';
 
 export class LoadEnvironmentVariables {
   /**

@@ -91,12 +91,78 @@ module.exports = {
 
   headers: {
     // Cache control for browsers
-    'Cache-Control': env('MEDIA_CACHE_CONTROL', 'public, max-age=604800'),
+    'Cache-Control': env('MEDIA_CACHE_CONTROL', 'public, max-age=604800, immutable'),
 
     // Content security policy
     'Cross-Origin-Resource-Policy': 'cross-origin',
+    
+    // Vary header for content negotiation
+    'Vary': 'Accept',
+  },
+
+  /*
+  |--------------------------------------------------------------------------
+  | Format Conversion
+  |--------------------------------------------------------------------------
+  |
+  | Automatic format conversion based on browser support.
+  |
+  */
+
+  formats: {
+    // Enable WebP conversion
+    enableWebP: env('MEDIA_ENABLE_WEBP', true),
+
+    // Enable AVIF conversion
+    enableAVIF: env('MEDIA_ENABLE_AVIF', false),
+
+    // Enable automatic format detection from Accept header
+    autoDetect: env('MEDIA_AUTO_DETECT_FORMAT', true),
+  },
+
+  /*
+  |--------------------------------------------------------------------------
+  | ETag & Last-Modified
+  |--------------------------------------------------------------------------
+  |
+  | Enable browser caching validation headers.
+  |
+  */
+
+  caching: {
+    // Enable ETag headers
+    enableETag: env('MEDIA_ENABLE_ETAG', true),
+
+    // Enable Last-Modified headers
+    enableLastModified: env('MEDIA_ENABLE_LAST_MODIFIED', true),
+  },
+
+  /*
+  |--------------------------------------------------------------------------
+  | CDN Integration
+  |--------------------------------------------------------------------------
+  |
+  | Enable CDN for media delivery.
+  |
+  */
+
+  cdn: {
+    // Use CDN for media URLs
+    enabled: env('MEDIA_CDN_ENABLED', false),
+
+    // CDN base URL (uses config/cdn.cjs if not specified)
+    baseUrl: env('MEDIA_CDN_BASE_URL', ''),
   },
 };
+
+function env(key, defaultValue = null) {
+  const value = process.env[key];
+  if (value === undefined || value === null) return defaultValue;
+  if (value === 'true') return true;
+  if (value === 'false') return false;
+  if (!isNaN(value) && value !== '') return Number(value);
+  return value;
+}
 
 function env(key, defaultValue = null) {
   const value = process.env[key];

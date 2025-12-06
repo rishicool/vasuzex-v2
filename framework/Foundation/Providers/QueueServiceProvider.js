@@ -3,7 +3,7 @@
  * Laravel-inspired queue service provider
  */
 
-import { QueueManager } from '../../Services/Queue/QueueManager.js';
+import { QueueManager } from '#framework/Services/Queue/QueueManager.js';
 
 export class QueueServiceProvider {
   constructor(app) {

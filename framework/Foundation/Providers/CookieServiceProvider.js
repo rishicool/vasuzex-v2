@@ -3,7 +3,7 @@
  * Laravel-inspired cookie service provider
  */
 
-import { CookieJar } from '../../Services/Cookie/CookieJar.js';
+import { CookieJar } from '#framework/Services/Cookie/CookieJar.js';
 
 export class CookieServiceProvider {
   constructor(app) {

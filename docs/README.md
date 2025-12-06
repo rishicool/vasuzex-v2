@@ -68,11 +68,20 @@ All V1 APIs work in V2 - only dependency location changed.
 ## Quick Start
 
 ```bash
-# Create project
+# Install globally (optional)
+npm install -g vasuzex@latest
+
+# Create new project
 npx create-vasuzex my-app
 
-# Generate full-stack app
+# Or with global install
+create-vasuzex my-app
+
+# Navigate and setup
 cd my-app
+pnpm install  # If not done automatically
+
+# Generate full-stack app
 pnpm exec vasuzex generate:app blog
 
 # Run migrations

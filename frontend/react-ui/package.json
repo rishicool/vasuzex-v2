@@ -1,0 +1,114 @@
+{
+  "name": "@vasuzex/react",
+  "version": "2.0.0",
+  "description": "React component library for Vasuzex Framework",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./components/DataTable": {
+      "types": "./dist/components/DataTable/index.d.ts",
+      "import": "./dist/components/DataTable/index.js",
+      "require": "./dist/components/DataTable/index.cjs"
+    },
+    "./components/Autocomplete": {
+      "types": "./dist/components/Autocomplete/index.d.ts",
+      "import": "./dist/components/Autocomplete/index.js",
+      "require": "./dist/components/Autocomplete/index.cjs"
+    },
+    "./components/Forms": {
+      "types": "./dist/components/Forms/index.d.ts",
+      "import": "./dist/components/Forms/index.js",
+      "require": "./dist/components/Forms/index.cjs"
+    },
+    "./components/PhotoManager": {
+      "types": "./dist/components/PhotoManager/index.d.ts",
+      "import": "./dist/components/PhotoManager/index.js",
+      "require": "./dist/components/PhotoManager/index.cjs"
+    },
+    "./hooks": {
+      "types": "./dist/hooks/index.d.ts",
+      "import": "./dist/hooks/index.js",
+      "require": "./dist/hooks/index.cjs"
+    },
+    "./providers": {
+      "types": "./dist/providers/index.d.ts",
+      "import": "./dist/providers/index.js",
+      "require": "./dist/providers/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext js,jsx,ts,tsx",
+    "type-check": "tsc --noEmit",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "dependencies": {
+    "@vasuzex/client": "workspace:*",
+    "prop-types": "^15.8.1"
+  },
+  "devDependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "@testing-library/jest-dom": "^6.5.0",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/user-event": "^14.5.2",
+    "@types/node": "^22.10.2",
+    "@types/react": "^18.3.17",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "eslint": "^9.17.0",
+    "eslint-plugin-react": "^7.37.2",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "jsdom": "^25.0.1",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.3",
+    "vite-plugin-dts": "^4.3.0",
+    "vitest": "^2.1.8"
+  },
+  "keywords": [
+    "vasuzex",
+    "react",
+    "components",
+    "ui",
+    "datatable",
+    "autocomplete",
+    "forms",
+    "framework",
+    "hooks",
+    "providers"
+  ],
+  "author": "Vasuzex Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rishicool/vasuzex-v2.git",
+    "directory": "frontend/react-ui"
+  },
+  "bugs": {
+    "url": "https://github.com/rishicool/vasuzex-v2/issues"
+  },
+  "homepage": "https://github.com/rishicool/vasuzex-v2#readme"
+}

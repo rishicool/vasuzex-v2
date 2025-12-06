@@ -6,7 +6,7 @@
  */
 
 import { ConfigRepository } from '../../Config/Repository.js';
-import { ConfigLoader } from '../../Support/ConfigLoader.js';
+import { ConfigLoader } from '#framework/Support/ConfigLoader.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';

@@ -1,0 +1,200 @@
+/**
+ * Accessibility Styles
+ * 
+ * Global styles for improving component accessibility
+ */
+
+/* Screen reader only text */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Focus visible styles */
+*:focus-visible {
+  outline: 2px solid var(--vasuzex-focus-color, #0066cc);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Skip navigation link */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--vasuzex-primary-color, #0066cc);
+  color: white;
+  padding: 8px 16px;
+  text-decoration: none;
+  z-index: 10000;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  * {
+    border-width: 2px !important;
+  }
+  
+  button, a {
+    text-decoration: underline;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Focus within styles */
+.vasuzex-datatable:focus-within,
+.vasuzex-autocomplete:focus-within,
+.vasuzex-form-field:focus-within {
+  box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.2);
+}
+
+/* Keyboard navigation indicators */
+.vasuzex-keyboard-nav *:focus {
+  outline: 3px solid var(--vasuzex-focus-color, #0066cc);
+  outline-offset: 2px;
+}
+
+/* Disabled element styles */
+[disabled], [aria-disabled="true"] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ARIA live region */
+[role="status"], [role="alert"] {
+  position: relative;
+}
+
+/* Table accessibility */
+.vasuzex-datatable th[aria-sort] {
+  cursor: pointer;
+  user-select: none;
+}
+
+.vasuzex-datatable th[aria-sort]:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Button states */
+button[aria-pressed="true"] {
+  background-color: var(--vasuzex-active-color, #004d99);
+  color: white;
+}
+
+button[aria-expanded="true"]::after {
+  content: " (expanded)";
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Form validation */
+[aria-invalid="true"] {
+  border-color: var(--vasuzex-error-color, #dc3545);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%23dc3545'%3E%3Ccircle cx='6' cy='6' r='4.5'/%3E%3Cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3E%3Ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right calc(0.375em + 0.1875rem) center;
+  background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+  padding-right: calc(1.5em + 0.75rem);
+}
+
+/* Loading states */
+[aria-busy="true"] {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+/* Combobox/Autocomplete */
+[role="combobox"][aria-expanded="true"] + [role="listbox"] {
+  display: block;
+}
+
+[role="combobox"][aria-expanded="false"] + [role="listbox"] {
+  display: none;
+}
+
+[role="option"][aria-selected="true"] {
+  background-color: var(--vasuzex-selected-color, #0066cc);
+  color: white;
+}
+
+[role="option"]:hover,
+[role="option"][data-highlighted="true"] {
+  background-color: rgba(0, 102, 204, 0.1);
+}
+
+/* Dialog/Modal */
+[role="dialog"] {
+  position: fixed;
+  z-index: 1000;
+}
+
+[role="dialog"]::backdrop {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+/* Tooltips */
+[role="tooltip"] {
+  position: absolute;
+  z-index: 1001;
+  background-color: #333;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+/* Progress indicators */
+[role="progressbar"] {
+  overflow: hidden;
+  position: relative;
+  background-color: #e9ecef;
+  border-radius: 4px;
+}
+
+/* Alerts */
+[role="alert"] {
+  padding: 12px 16px;
+  border-radius: 4px;
+  border-left: 4px solid;
+}
+
+[role="alert"][aria-live="assertive"] {
+  border-left-color: #dc3545;
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+[role="alert"][aria-live="polite"] {
+  border-left-color: #0066cc;
+  background-color: #d1ecf1;
+  color: #0c5460;
+}

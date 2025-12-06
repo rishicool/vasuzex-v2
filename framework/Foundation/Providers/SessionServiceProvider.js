@@ -3,7 +3,7 @@
  * Laravel-inspired session service provider
  */
 
-import { SessionManager } from '../../Services/Session/SessionManager.js';
+import { SessionManager } from '#framework/Services/Session/SessionManager.js';
 
 export class SessionServiceProvider {
   constructor(app) {

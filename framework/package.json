@@ -8,5 +8,9 @@
   "exports": {
     ".": "./index.js",
     "./*": "./*"
+  },
+  "imports": {
+    "#framework": "./index.js",
+    "#framework/*": "./*"
   }
 }

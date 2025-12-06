@@ -3,7 +3,7 @@
  * Laravel-inspired validation service provider
  */
 
-import { ValidationFactory } from '../../Services/Validation/ValidationFactory.js';
+import { ValidationFactory } from '#framework/Services/Validation/ValidationFactory.js';
 
 export class ValidationServiceProvider {
   constructor(app) {

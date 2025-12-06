@@ -5,6 +5,16 @@ Get started with Vasuzex V2 in under 5 minutes.
 ## Create Project
 
 ```bash
+# From cloned vasuzex-v2 repository
+node bin/create-vasuzex.js my-app
+
+# Or if installed locally
+pnpm create-vasuzex my-app
+```
+
+## Create Project
+
+```bash
 npx create-vasuzex my-app
 ```
 

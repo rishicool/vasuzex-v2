@@ -39,7 +39,8 @@ module.exports = {
 
     console: {
       driver: 'console',
-      level: env('LOG_LEVEL', 'debug')
+      level: env('LOG_LEVEL', 'debug'),
+      colors: true // Enable colored output
     },
 
     file: {
@@ -47,7 +48,8 @@ module.exports = {
       path: 'storage/logs',
       filename: 'app.log',
       level: env('LOG_LEVEL', 'debug'),
-      days: 14
+      days: 14,
+      rotation: 'daily' // daily, weekly, size, level
     },
 
     error: {
@@ -55,7 +57,8 @@ module.exports = {
       path: 'storage/logs',
       filename: 'error.log',
       level: 'error',
-      days: 30
+      days: 30,
+      rotation: 'daily'
     },
 
     daily: {
@@ -63,7 +66,22 @@ module.exports = {
       path: 'storage/logs',
       filename: 'daily.log',
       level: env('LOG_LEVEL', 'debug'),
-      days: 7
+      days: 7,
+      rotation: 'daily'
+    },
+
+    syslog: {
+      driver: 'syslog',
+      level: 'info',
+      facility: 'local0', // local0-local7, user, daemon, etc.
+      ident: 'vasuzex',
+      useSyslogCommand: true // Use system logger command on Unix
+    },
+
+    production: {
+      driver: 'stack',
+      channels: ['file', 'syslog'],
+      ignore_exceptions: false
     }
   }
 };

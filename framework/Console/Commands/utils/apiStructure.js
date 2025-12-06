@@ -21,10 +21,15 @@ import {
   generateAuthRoutesTemplate,
   generatePostRoutesTemplate,
   generateRoutesIndexTemplate,
+  generateDatabaseConfigTemplate,
+  generateEnvHelperTemplate,
+  generateUsersMigrationTemplate,
+  generateUserSeederTemplate,
+  generateApiEnvTemplate,
 } from './apiTemplates.js';
 
 /**
- * Create API directory structure
+ * Create API directory structure with database folders
  */
 export async function createAPIDirectoryStructure(targetDir) {
   const directories = [
@@ -34,6 +39,10 @@ export async function createAPIDirectoryStructure(targetDir) {
     'src/middleware',
     'src/routes',
     'src/requests',
+    'src/helpers',
+    'config',
+    'database/migrations',
+    'database/seeders',
   ];
   
   await createDirectories(targetDir, directories);
@@ -142,7 +151,7 @@ export async function generateAPIRoutes(targetDir) {
 }
 
 /**
- * Generate complete API structure
+ * Generate complete API structure with database setup
  */
 export async function generateCompleteAPIStructure(targetDir) {
   await createAPIDirectoryStructure(targetDir);
@@ -152,4 +161,41 @@ export async function generateCompleteAPIStructure(targetDir) {
   await generateAPIMiddleware(targetDir);
   await generateAPIRequests(targetDir);
   await generateAPIRoutes(targetDir);
+  await generateDatabaseFiles(targetDir);
+}
+
+/**
+ * Generate database configuration, migrations, and seeders
+ */
+export async function generateDatabaseFiles(targetDir) {
+  // Config files
+  await writeFileContent(
+    join(targetDir, 'config/database.js'),
+    generateDatabaseConfigTemplate()
+  );
+  
+  // Helper files
+  await writeFileContent(
+    join(targetDir, 'src/helpers/env.js'),
+    generateEnvHelperTemplate()
+  );
+  
+  // Migrations
+  const timestamp = new Date().toISOString().replace(/[-:T]/g, '_').split('.')[0];
+  await writeFileContent(
+    join(targetDir, `database/migrations/${timestamp}_create_users_table.js`),
+    generateUsersMigrationTemplate()
+  );
+  
+  // Seeders
+  await writeFileContent(
+    join(targetDir, 'database/seeders/UserSeeder.js'),
+    generateUserSeederTemplate()
+  );
+  
+  // .env.example
+  await writeFileContent(
+    join(targetDir, '.env.example'),
+    generateApiEnvTemplate()
+  );
 }

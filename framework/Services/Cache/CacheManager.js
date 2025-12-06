@@ -6,6 +6,8 @@
 import { Repository } from './Repository.js';
 import { ArrayStore } from './Stores/ArrayStore.js';
 import { RedisStore } from './Stores/RedisStore.js';
+import { FileStore } from './Stores/FileStore.js';
+import { MemoryStore } from './Stores/MemoryStore.js';
 
 export class CacheManager {
   constructor(app) {
@@ -81,6 +83,25 @@ export class CacheManager {
     const connection = redis.connection(config.connection || 'cache');
 
     return this.repository(new RedisStore(connection, {
+      prefix: this.getPrefix(config)
+    }));
+  }
+
+  /**
+   * Create an instance of the file cache driver
+   */
+  createFileDriver(config) {
+    return this.repository(new FileStore({
+      path: config.path || 'storage/framework/cache',
+      prefix: this.getPrefix(config)
+    }));
+  }
+
+  /**
+   * Create an instance of the memory cache driver
+   */
+  createMemoryDriver(config) {
+    return this.repository(new MemoryStore({
       prefix: this.getPrefix(config)
     }));
   }

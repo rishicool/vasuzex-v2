@@ -3,7 +3,7 @@
  * Register Translation service
  */
 
-import { Translator } from '../../Translation/Translator.js';
+import { Translator } from '#framework/Translation/Translator.js';
 
 export class TranslationServiceProvider {
   constructor(app) {

@@ -3,7 +3,7 @@
  * Laravel-inspired notification service provider
  */
 
-import { NotificationManager } from '../../Services/Notification/NotificationManager.js';
+import { NotificationManager } from '#framework/Services/Notification/NotificationManager.js';
 
 export class NotificationServiceProvider {
   constructor(app) {

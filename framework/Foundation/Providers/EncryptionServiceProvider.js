@@ -3,7 +3,7 @@
  * Laravel-inspired encryption service provider
  */
 
-import { Encrypter } from '../../Services/Encryption/Encrypter.js';
+import { Encrypter } from '#framework/Services/Encryption/Encrypter.js';
 
 export class EncryptionServiceProvider {
   constructor(app) {

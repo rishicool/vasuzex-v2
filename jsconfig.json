@@ -2,15 +2,15 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@framework": ["./framework/index.js"],
-      "@framework/*": ["./framework/*"],
-      "@database": ["./database/index.js"],
-      "@database/*": ["./database/*"],
-      "@models": ["./database/models/index.js"],
-      "@models/*": ["./database/models/*"],
-      "@config": ["./config/index.cjs"],
-      "@config/*": ["./config/*"],
-      "@apps/*": ["./apps/*"]
+      "vasuzex": ["./framework/index.js"],
+      "vasuzex/*": ["./framework/*"],
+      "#database": ["./database/index.js"],
+      "#database/*": ["./database/*"],
+      "#models": ["./database/models/index.js"],
+      "#models/*": ["./database/models/*"],
+      "#config": ["./config/index.cjs"],
+      "#config/*": ["./config/*"],
+      "#apps/*": ["./apps/*"]
     },
     "module": "esnext",
     "moduleResolution": "node",

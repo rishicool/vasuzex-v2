@@ -6,6 +6,7 @@
 import { join } from 'path';
 import {
   createDirectories,
+  createDirectory,
   writeFileContent,
 } from './fileOperations.js';
 import {
@@ -14,6 +15,8 @@ import {
   generateReactTemplate,
   generateVueTemplate,
   generateSvelteTemplate,
+  generateReduxStoreFiles,
+  generateReactAuthPages
 } from './templateGenerator.js';
 
 /**
@@ -63,17 +66,39 @@ export async function generateCompleteWebStructure(targetDir, appName, framework
 }
 
 /**
- * Generate React app structure
+ * Generate React app structure with Redux and Auth
  */
 export async function generateReactApp(targetDir, appName) {
   const { indexHtml, appJs, indexJs, indexCss } = generateReactTemplate(appName);
+  const storeFiles = generateReduxStoreFiles(appName);
+  const authPages = generateReactAuthPages(appName);
   
-  // Vite expects index.html at root, not in public/
+  // Create directory structure
+  await createDirectory(join(targetDir, 'src/store'));
+  await createDirectory(join(targetDir, 'src/pages'));
+  await createDirectory(join(targetDir, 'src/components'));
+  
+  // Root files
   await writeFileContent(join(targetDir, 'index.html'), indexHtml);
   await writeFileContent(join(targetDir, 'src/App.jsx'), appJs);
   await writeFileContent(join(targetDir, 'src/index.jsx'), indexJs);
   await writeFileContent(join(targetDir, 'src/index.css'), indexCss);
+  
+  // Redux store
+  await writeFileContent(join(targetDir, 'src/store/index.js'), storeFiles.storeIndex);
+  await writeFileContent(join(targetDir, 'src/store/authSlice.js'), storeFiles.authSlice);
+  
+  // Auth pages
+  await writeFileContent(join(targetDir, 'src/pages/Login.jsx'), authPages.login);
+  await writeFileContent(join(targetDir, 'src/pages/Register.jsx'), authPages.register);
+  await writeFileContent(join(targetDir, 'src/pages/Dashboard.jsx'), authPages.dashboard);
+  
+  // Components
+  await writeFileContent(join(targetDir, 'src/components/ProtectedRoute.jsx'), authPages.protectedRoute);
+  
+  // Config files
   await writeFileContent(join(targetDir, 'vite.config.js'), generateViteConfig('react'));
+  await writeFileContent(join(targetDir, '.env.example'), generateReactEnvExample());
   await writeFileContent(join(targetDir, 'README.md'), generateWebReadme(appName, 'react'));
 }
 
@@ -146,4 +171,16 @@ export default defineConfig({
   }
   
   return '';
+}
+
+/**
+ * Generate React .env.example file
+ */
+function generateReactEnvExample() {
+  return `# API Configuration
+VITE_API_URL=http://localhost:3000/api
+
+# App Configuration
+VITE_APP_NAME=My App
+VITE_APP_ENV=development`;
 }

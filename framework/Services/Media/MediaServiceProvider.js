@@ -2,7 +2,7 @@
  * Media Service Provider
  */
 
-import { ServiceProvider } from '../../Foundation/ServiceProvider.js';
+import { ServiceProvider } from '#framework/Foundation/ServiceProvider.js';
 import { MediaManager } from './MediaManager.js';
 import { mkdirSync, existsSync } from 'fs';
 

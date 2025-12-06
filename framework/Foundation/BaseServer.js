@@ -47,6 +47,12 @@ export class BaseServer {
       // Create app using subclass method
       this.app = await this.createApp();
       
+      // Bootstrap application (Laravel Kernel pattern)
+      // Load environment and configuration before serving requests
+      if (this.app.bootstrap && !this.app.bootstrapped) {
+        await this.app.bootstrap();
+      }
+      
       // Get Express instance (handle both BaseApp and plain Express)
       const express = this.app.getExpress ? this.app.getExpress() : this.app;
       

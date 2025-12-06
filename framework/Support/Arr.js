@@ -100,6 +100,20 @@ export class Arr {
   static wrap(value) {
     return Array.isArray(value) ? value : [value];
   }
+
+  /**
+   * Get first element of array
+   */
+  static first(arr) {
+    return arr[0];
+  }
+
+  /**
+   * Get last element of array
+   */
+  static last(arr) {
+    return arr[arr.length - 1];
+  }
 }
 
 export default Arr;

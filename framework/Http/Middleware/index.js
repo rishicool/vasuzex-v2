@@ -49,3 +49,16 @@ export {
 export {
   requestResponseMiddleware,
 } from './RequestResponseMiddleware.js';
+
+// Security Middleware
+export {
+  default as SecurityMiddleware,
+  createSecurityMiddleware,
+  applySecurityMiddleware,
+} from './SecurityMiddleware.js';
+
+// Media Server Middleware
+export {
+  MediaServerMiddleware,
+  mediaServer,
+} from './MediaServerMiddleware.js';

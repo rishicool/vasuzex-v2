@@ -133,28 +133,83 @@ export class AuthController extends BaseController {
 }
 
 /**
- * Generate User model
+ * Generate User model with database operations
  */
 export function generateUserModelTemplate() {
   return `/**
  * User Model
- * Can extend centralized models or create app-specific models
+ * Database operations for users table
  */
 
-import { Model } from 'guruorm';
+import { DB } from 'vasuzex';
 
-export class User extends Model {
-  static table = 'users';
-  
-  static fillable = ['name', 'email', 'password'];
-  
-  static hidden = ['password'];
-  
+export class User {
+  /**
+   * Get query builder for users table
+   */
+  static query() {
+    return DB.table('users');
+  }
+
+  /**
+   * Create a new user
+   */
+  static async create(data) {
+    const [user] = await DB.table('users').insert({
+      name: data.name,
+      email: data.email,
+      password: data.password,
+      created_at: new Date(),
+      updated_at: new Date()
+    }).returning('*');
+
+    return user;
+  }
+
   /**
    * Find user by email
    */
   static async findByEmail(email) {
-    return await this.query().where('email', email).first();
+    const user = await DB.table('users')
+      .where('email', email)
+      .first();
+
+    return user;
+  }
+
+  /**
+   * Find user by ID
+   */
+  static async findById(id) {
+    const user = await DB.table('users')
+      .where('id', id)
+      .first();
+
+    return user;
+  }
+
+  /**
+   * Update user
+   */
+  static async update(id, data) {
+    const [user] = await DB.table('users')
+      .where('id', id)
+      .update({
+        ...data,
+        updated_at: new Date()
+      })
+      .returning('*');
+
+    return user;
+  }
+
+  /**
+   * Delete user
+   */
+  static async delete(id) {
+    await DB.table('users')
+      .where('id', id)
+      .delete();
   }
 }
 `;
@@ -171,8 +226,7 @@ export function generateAuthServiceTemplate() {
 
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-// Import from centralized models (5 levels up: services→src→api→{name}→apps→root)
-import { User } from '../../../../../database/models/User.js';
+import { User } from '../models/User.js';
 
 export class AuthService {
   /**
@@ -273,8 +327,7 @@ export function generateAuthMiddlewareTemplate() {
  */
 
 import { AuthService } from '../services/AuthService.js';
-// Import from centralized models (5 levels up: middleware→src→api→{name}→apps→root)
-import { User } from '../../../../../database/models/User.js';
+import { User } from '../models/User.js';
 
 export async function authMiddleware(req, res, next) {
   try {
@@ -456,8 +509,8 @@ export function generatePostControllerTemplate() {
  */
 
 import { BaseController } from './BaseController.js';
-import { Post } from '../../../../../database/models/Post.js';
-import { Comment } from '../../../../../database/models/Comment.js';
+import { Post } from '../models/Post.js';
+import { Comment } from '../models/Comment.js';
 
 export class PostController extends BaseController {
   /**
@@ -622,8 +675,8 @@ export function generateCommentControllerTemplate() {
  */
 
 import { BaseController } from './BaseController.js';
-import { Comment } from '../../../../../database/models/Comment.js';
-import { Post } from '../../../../../database/models/Post.js';
+import { Comment } from '../models/Comment.js';
+import { Post } from '../models/Post.js';
 
 export class CommentController extends BaseController {
   /**
@@ -712,4 +765,140 @@ router.delete('/comments/:id', (req, res) => commentController.destroy(req, res)
 
 export default router;
 `;
+}
+
+/**
+ * Generate database config template
+ */
+export function generateDatabaseConfigTemplate() {
+  return `/**
+ * Database Configuration
+ * Uses environment variables via env() helper
+ */
+
+import { env } from '../helpers/env.js';
+
+export default {
+  // Database connection URL
+  url: env('DATABASE_URL', 'postgresql://user:password@localhost:5432/mydb'),
+  
+  // Connection pool settings
+  pool: {
+    min: parseInt(env('DB_POOL_MIN', '2')),
+    max: parseInt(env('DB_POOL_MAX', '10'))
+  },
+  
+  // Migrations path
+  migrations: {
+    directory: './database/migrations'
+  },
+  
+  // Seeds path
+  seeds: {
+    directory: './database/seeders'
+  }
+};
+`;
+}
+
+/**
+ * Generate env helper template
+ */
+export function generateEnvHelperTemplate() {
+  return `/**
+ * Environment Helper
+ * Laravel-style env() function for accessing environment variables
+ */
+
+export function env(key, defaultValue = null) {
+  return process.env[key] ?? defaultValue;
+}
+`;
+}
+
+/**
+ * Generate users migration template
+ */
+export function generateUsersMigrationTemplate() {
+  return `/**
+ * Users Table Migration
+ * Creates users table with authentication fields
+ */
+
+export const up = async (db) => {
+  await db.schema.createTable('users', (table) => {
+    table.increments('id').primary();
+    table.string('name', 255).notNullable();
+    table.string('email', 255).unique().notNullable();
+    table.string('password', 255).notNullable();
+    table.timestamps();
+  });
+  
+  console.log('✅ Users table created');
+};
+
+export const down = async (db) => {
+  await db.schema.dropTableIfExists('users');
+  console.log('✅ Users table dropped');
+};
+`;
+}
+
+/**
+ * Generate user seeder template
+ */
+export function generateUserSeederTemplate() {
+  return `/**
+ * User Seeder
+ * Creates demo users for development
+ */
+
+import bcrypt from 'bcryptjs';
+
+export default class UserSeeder {
+  async run(db) {
+    const users = [
+      {
+        name: 'Admin User',
+        email: 'admin@example.com',
+        password: await bcrypt.hash('password123', 10),
+        created_at: new Date(),
+        updated_at: new Date()
+      },
+      {
+        name: 'Test User',
+        email: 'test@example.com',
+        password: await bcrypt.hash('password123', 10),
+        created_at: new Date(),
+        updated_at: new Date()
+      }
+    ];
+
+    await db.table('users').insert(users);
+    console.log('✅ Seeded', users.length, 'users');
+  }
+}
+`;
+}
+
+/**
+ * Generate .env.example template for API
+ */
+export function generateApiEnvTemplate() {
+  return `# Application
+APP_NAME=My App
+APP_ENV=development
+APP_PORT=3000
+
+# Database (PostgreSQL)
+DATABASE_URL=postgresql://user:password@localhost:5432/mydb
+DB_POOL_MIN=2
+DB_POOL_MAX=10
+
+# Authentication
+JWT_SECRET=your-secret-key-change-in-production
+JWT_EXPIRES_IN=7d
+
+# CORS
+CORS_ORIGIN=http://localhost:3001`;
 }

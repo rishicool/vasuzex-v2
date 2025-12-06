@@ -3,7 +3,7 @@
  * Laravel-inspired event service provider
  */
 
-import { EventDispatcher } from '../../Services/Events/EventDispatcher.js';
+import { EventDispatcher } from '#framework/Services/Events/EventDispatcher.js';
 
 export class EventServiceProvider {
   constructor(app) {

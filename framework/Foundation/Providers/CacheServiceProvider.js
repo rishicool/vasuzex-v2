@@ -3,7 +3,7 @@
  * Laravel-inspired cache service provider
  */
 
-import { CacheManager } from '../../Services/Cache/CacheManager.js';
+import { CacheManager } from '#framework/Services/Cache/CacheManager.js';
 
 export class CacheServiceProvider {
   constructor(app) {

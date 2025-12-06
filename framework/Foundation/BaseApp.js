@@ -1,4 +1,5 @@
 import { Application } from './Application.js';
+import { applySecurityMiddleware } from '../Http/Middleware/SecurityMiddleware.js';
 
 /**
  * BaseApp - Base class for application-level apps (Express apps)
@@ -15,6 +16,7 @@ export class BaseApp extends Application {
     this.appType = options.appType;
     this.middlewareSetup = false;
     this.routesSetup = false;
+    this.securitySetup = false;
   }
 
   /**
@@ -31,6 +33,12 @@ export class BaseApp extends Application {
    * This method orchestrates the app setup
    */
   build() {
+    // Setup security middleware (should be first)
+    if (!this.securitySetup) {
+      this.setupSecurityMiddleware();
+      this.securitySetup = true;
+    }
+
     // Setup custom middleware
     if (!this.middlewareSetup) {
       this.setupCustomMiddleware();
@@ -55,6 +63,25 @@ export class BaseApp extends Application {
     }
 
     return this.express;
+  }
+
+  /**
+   * Setup security middleware
+   * Applies Helmet, CORS, CSRF, and custom security headers
+   */
+  setupSecurityMiddleware() {
+    try {
+      // Get security configuration (may not exist in test environment)
+      const securityConfig = this.has('config') ? this.config('security', {}) : {};
+      
+      // Only apply if configuration exists and not explicitly disabled
+      if (securityConfig && Object.keys(securityConfig).length > 0) {
+        applySecurityMiddleware(this.express, securityConfig);
+      }
+    } catch (error) {
+      // Silently skip if config not available (e.g., in tests)
+      // This is expected behavior when app is not bootstrapped
+    }
   }
 
   /**

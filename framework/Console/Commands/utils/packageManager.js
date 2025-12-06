@@ -54,30 +54,84 @@ export async function createAppPackageJson(appName, appType, targetDir, framewor
     description: `${appName} ${appType} application`,
     type: 'module',
     private: true,
-    scripts: {}
+    scripts: {},
+    dependencies: {}
   };
   
-  // API-specific configuration (scripts only - uses hoisted dependencies)
+  // API-specific configuration
   if (appType === 'api') {
     packageJson.scripts = {
       dev: 'nodemon src/index.js',
       start: 'node src/index.js',
+      'db:migrate': 'node -e "console.log(\'Run migrations from project root: pnpm db:migrate\')"',
+    };
+    
+    // API dependencies
+    packageJson.dependencies = {
+      'vasuzex': 'workspace:*',
+      'express': '^5.2.1',
+      'bcryptjs': '^2.4.3',
+      'jsonwebtoken': '^9.0.3',
+      'joi': '^17.13.3',
+      'cors': '^2.8.5',
+      'dotenv': '^16.6.1',
+      'pg': '^8.16.3',
+      'guruorm': '^2.0.0'
+    };
+    
+    packageJson.devDependencies = {
+      'nodemon': '^3.1.11'
     };
   }
   
-  // Web-specific configuration (scripts only - uses hoisted dependencies)
+  // Web-specific configuration
   if (appType === 'web') {
     packageJson.scripts = {
       dev: 'vite',
       build: 'vite build',
       preview: 'vite preview',
     };
+    
+    // Web dependencies based on framework
+    if (framework === 'react') {
+      packageJson.dependencies = {
+        'react': '^18.2.0',
+        'react-dom': '^18.2.0',
+        'react-router-dom': '^6.28.0',
+        '@reduxjs/toolkit': '^2.5.0',
+        'redux-persist': '^6.0.0',
+        '@vasuzex/client': '^2.0.0'
+      };
+      
+      packageJson.devDependencies = {
+        'vite': '^5.0.0',
+        '@vitejs/plugin-react': '^4.2.1'
+      };
+    } else if (framework === 'vue') {
+      packageJson.dependencies = {
+        'vue': '^3.4.0'
+      };
+      
+      packageJson.devDependencies = {
+        'vite': '^5.0.0',
+        '@vitejs/plugin-vue': '^5.0.0'
+      };
+    } else if (framework === 'svelte') {
+      packageJson.dependencies = {
+        'svelte': '^4.2.0'
+      };
+      
+      packageJson.devDependencies = {
+        'vite': '^5.0.0',
+        '@sveltejs/vite-plugin-svelte': '^3.0.0'
+      };
+    }
   }
   
   await writeJsonFile(join(targetDir, 'package.json'), packageJson);
   
-  console.log('\n💡 App uses hoisted dependencies from root node_modules');
-  console.log('   No need to install packages individually!');
+  console.log(`\n📦 Created package.json with ${Object.keys(packageJson.dependencies).length} dependencies`);
+  console.log('   Run "pnpm install" from project root to install all dependencies');
 }
 
 /**

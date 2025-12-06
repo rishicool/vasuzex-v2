@@ -3,7 +3,7 @@
  * Register Broadcasting service
  */
 
-import { BroadcastManager } from '../../Broadcasting/BroadcastManager.js';
+import { BroadcastManager } from '#framework/Broadcasting/BroadcastManager.js';
 
 export class BroadcastServiceProvider {
   constructor(app) {

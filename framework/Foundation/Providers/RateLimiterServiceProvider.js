@@ -3,7 +3,7 @@
  * Register Rate Limiter service
  */
 
-import { RateLimiter } from '../../Support/RateLimiter.js';
+import { RateLimiter } from '#framework/Support/RateLimiter.js';
 
 export class RateLimiterServiceProvider {
   constructor(app) {
