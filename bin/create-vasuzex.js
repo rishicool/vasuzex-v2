@@ -171,6 +171,9 @@ async function copyDatabaseFiles(targetDir, spinner) {
 async function createPackageJson(projectName, targetDir, spinner) {
   spinner.text = 'Creating package.json with V2 dependencies...';
   
+  // Detect if running from local development (any vasuzex folder)
+  const isLocalDev = frameworkRoot.includes('/work/vasuzex') || frameworkRoot.includes('\\work\\vasuzex');
+  
   const packageJson = {
     name: projectName,
     version: '1.0.0',
@@ -247,15 +250,9 @@ async function createPackageJson(projectName, targetDir, spinner) {
     }
   };
   
-  // Detect if running from local development (any vasuzex folder)
-  const isLocalDev = frameworkRoot.includes('/work/vasuzex') || frameworkRoot.includes('\\work\\vasuzex');
-  
+  // Already set vasuzex dependency above, just log if local dev
   if (isLocalDev) {
-    packageJson.dependencies.vasuzex = `file:${frameworkRoot}`;
     console.log(chalk.cyan(`\n🔧 Development mode: Using local vasuzex from ${frameworkRoot}\n`));
-  } else {
-    // For published package, use semver range that matches alpha versions
-    packageJson.dependencies.vasuzex = '^2.0.0-alpha.0';
   }
   
   await fs.writeJSON(path.join(targetDir, 'package.json'), packageJson, { spaces: 2 });
