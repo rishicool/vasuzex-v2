@@ -579,10 +579,22 @@ pnpm start
 
 ## 📚 Documentation
 
-- [Migration Results](./MIGRATION_RESULTS.md) - V2 migration details
-- [Dependency Strategy](./docs/DEPENDENCY_MANAGEMENT_STRATEGY.md) - Why hybrid approach?
-- [Import Aliases](./docs/IMPORT_ALIASES.md) - How to import modules
-- [Getting Started](./docs/getting-started/installation.md) - Detailed setup guide
+### Getting Started
+- 🚀 [**Full Stack Setup**](./docs/FULL_STACK_SETUP.md) - Quick reference for fullstack apps
+- 📖 [Full Stack Guide](./docs/getting-started/fullstack-guide.md) - Complete fullstack tutorial
+- 📦 [Installation](./docs/getting-started/installation.md) - Detailed setup guide
+- 🏗️ [Project Structure](./docs/getting-started/project-structure.md) - Understanding the structure
+
+### Advanced
+- 🔄 [Migration Results](./MIGRATION_RESULTS.md) - V2 migration details
+- 📦 [Dependency Strategy](./docs/DEPENDENCY_MANAGEMENT_STRATEGY.md) - Why hybrid approach?
+- 🔗 [Import Aliases](./docs/IMPORT_ALIASES.md) - How to import modules
+- 🗄️ [Database Guide](./docs/database/getting-started.md) - Database & migrations
+
+### Configuration
+All 26 config files are in `./config/` directory:
+- `auth.cjs`, `database.cjs`, `mail.cjs`, `sms.cjs`, `payment.cjs`, etc.
+- See [Full Stack Setup](./docs/FULL_STACK_SETUP.md) for complete list
 
 ---
 
