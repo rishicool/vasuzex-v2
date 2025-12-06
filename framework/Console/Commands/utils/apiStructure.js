@@ -20,6 +20,7 @@ import {
   generateDatabaseConfigTemplate,
   generateEnvHelperTemplate,
   generateApiEnvTemplate,
+  generateJSConfigTemplate,
 } from './apiTemplates.js';
 
 /**
@@ -127,6 +128,12 @@ export async function generateCompleteAPIStructure(targetDir) {
   await generateAPIRequests(targetDir);
   await generateAPIRoutes(targetDir);
   await generateDatabaseConfig(targetDir);
+  
+  // Generate jsconfig.json for path aliases
+  await writeFileContent(
+    join(targetDir, 'jsconfig.json'),
+    generateJSConfigTemplate()
+  );
 }
 
 /**
