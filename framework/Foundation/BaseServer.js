@@ -59,15 +59,10 @@ export class BaseServer {
       }
       
       // Build the app (setup middleware and routes) after service providers are booted
-      let express = this.app;
-      if (this.app.build && typeof this.app.build === 'function') {
-        express = this.app.build() || this.app;
-      }
-      
-      // Get Express instance (handle both BaseApp and plain Express)
-      if (!express.listen) {
-        express = this.app.getExpress ? this.app.getExpress() : this.app.express || this.app;
-      }
+      // build() returns the Express instance with all middleware and routes configured
+      const express = (this.app.build && typeof this.app.build === 'function')
+        ? this.app.build()
+        : (this.app.getExpress ? this.app.getExpress() : this.app);
       
       return new Promise((resolve) => {
         this.server = express.listen(this.port, () => {
