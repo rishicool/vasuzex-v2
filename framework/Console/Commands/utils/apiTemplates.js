@@ -11,18 +11,6 @@ export function generateApiPackageJsonTemplate(appName) {
   "name": "@${appName}/api",
   "version": "1.0.0",
   "type": "module",
-  "imports": {
-    "#database": "../../../database/index.js",
-    "#database/*": "../../../database/*",
-    "#models/*": "../../../database/models/*",
-    "#config/*": "../../../config/*",
-    "#controllers/*": "./src/controllers/*",
-    "#services/*": "./src/services/*",
-    "#middleware/*": "./src/middleware/*",
-    "#routes/*": "./src/routes/*",
-    "#requests/*": "./src/requests/*",
-    "#helpers/*": "./src/helpers/*"
-  },
   "scripts": {
     "dev": "nodemon src/index.js",
     "start": "node src/index.js"
@@ -81,9 +69,9 @@ export function generateAuthControllerTemplate() {
  * Handles user registration, login, and authentication
  */
 
-import { BaseController } from '#controllers/BaseController.js';
-import { AuthService } from '#services/AuthService.js';
-import { LoginRequest, RegisterRequest } from '#requests/AuthRequests.js';
+import { BaseController } from './BaseController.js';
+import { AuthService } from '../services/AuthService.js';
+import { LoginRequest, RegisterRequest } from '../requests/AuthRequests.js';
 
 export class AuthController extends BaseController {
   constructor() {
@@ -255,7 +243,7 @@ export class User {
 /**
  * Generate AuthService
  */
-export function generateAuthServiceTemplate() {
+export function generateAuthServiceTemplate(projectName = 'my-app') {
   return `/**
  * Authentication Service
  * Business logic for authentication
@@ -263,7 +251,7 @@ export function generateAuthServiceTemplate() {
 
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { User } from '#database';
+import { User } from '@${projectName}/database';
 
 export class AuthService {
   /**
@@ -357,14 +345,14 @@ export class AuthService {
 /**
  * Generate auth middleware
  */
-export function generateAuthMiddlewareTemplate() {
+export function generateAuthMiddlewareTemplate(projectName = 'my-app') {
   return `/**
  * Authentication Middleware
  * Verify JWT token and attach user to request
  */
 
-import { AuthService } from '#services/AuthService.js';
-import { User } from '#database';
+import { AuthService } from '../services/AuthService.js';
+import { User } from '@${projectName}/database';
 
 export async function authMiddleware(req, res, next) {
   try {
