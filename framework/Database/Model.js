@@ -45,6 +45,8 @@ export class Model extends GuruORMModel {
   original = {};
   attributes = {};
   relations = {};
+  isHydrating = false;
+  pendingMutators = [];
 
   /**
    * Constructor
@@ -103,9 +105,11 @@ export class Model extends GuruORMModel {
    * Force fill attributes (bypass fillable)
    */
   forceFill(attributes = {}) {
+    this.isHydrating = true;
     for (const [key, value] of Object.entries(attributes)) {
-      this.setAttribute(key, value);
+      this.attributes[key] = value;
     }
+    this.isHydrating = false;
     return this;
   }
 
@@ -134,12 +138,19 @@ export class Model extends GuruORMModel {
    * Set attribute with mutator support
    */
   setAttribute(key, value) {
-    // Check if mutator exists (setXxxAttribute method)
-    const mutator = `set${this.studly(key)}Attribute`;
-    if (typeof this[mutator] === 'function') {
-      this[mutator](value);
-      this.isDirtyFlag = true;
-      return this;
+    // Skip mutators when hydrating from database
+    if (!this.isHydrating) {
+      // Check if mutator exists (setXxxAttribute method)
+      const mutator = `set${this.studly(key)}Attribute`;
+      if (typeof this[mutator] === 'function') {
+        const result = this[mutator](value);
+        // If mutator returns a promise, store it for later resolution
+        if (result instanceof Promise) {
+          this.pendingMutators.push(result);
+        }
+        this.isDirtyFlag = true;
+        return this;
+      }
     }
 
     // Cast value for storage if casts defined
@@ -301,6 +312,12 @@ export class Model extends GuruORMModel {
    * Save model (create or update)
    */
   async save() {
+    // Resolve any pending async mutators first
+    if (this.pendingMutators.length > 0) {
+      await Promise.all(this.pendingMutators);
+      this.pendingMutators = [];
+    }
+
     // Fire saving event
     if (await this.fireModelEvent('saving') === false) {
       return false;
