@@ -67,7 +67,9 @@
     "dev:cleanup-test-api": "turbo run dev --filter=cleanup-test-api",
     "start:cleanup-test-api": "turbo run start --filter=cleanup-test-api",
     "dev:auth-integration-test-api": "turbo run dev --filter=auth-integration-test-api",
-    "start:auth-integration-test-api": "turbo run start --filter=auth-integration-test-api"
+    "start:auth-integration-test-api": "turbo run start --filter=auth-integration-test-api",
+    "dev:e2e-test-api": "turbo run dev --filter=e2e-test-api",
+    "start:e2e-test-api": "turbo run start --filter=e2e-test-api"
   },
   "keywords": [
     "framework",

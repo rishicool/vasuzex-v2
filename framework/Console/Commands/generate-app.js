@@ -135,16 +135,13 @@ async function generateSingleApp(name, type, framework) {
  * Generate API application
  */
 async function generateAPIApp(name, targetDir) {
-  // Get project name from package.json
-  const { readProjectName } = await import('./utils/index.js');
-  const projectName = await readProjectName();
-  
-  // Use Plop for template generation (modern approach)
+  // Use app name for @{appName}/database imports (not root project name)
   const { generateAPIApp: plopGenerateAPI } = await import('./utils/plopGenerator.js');
   
   console.log('📝 Generating API files from templates...');
   
-  const result = await plopGenerateAPI(targetDir, projectName, name);
+  // Pass app name as projectName for template interpolation
+  const result = await plopGenerateAPI(targetDir, name, name);
   
   if (!result.success) {
     throw new Error(`Template generation failed: ${result.error}`);

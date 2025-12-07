@@ -277,6 +277,14 @@ async function createPackageJson(projectName, targetDir, spinner) {
         react: '^18.2.0',
         vue: '^3.4.0'
       }
+    },
+    imports: {
+      '#database': './database/index.js',
+      '#database/*': './database/*',
+      '#models': './database/models/index.js',
+      '#models/*': './database/models/*',
+      '#config': './config/index.cjs',
+      '#config/*': './config/*'
     }
   };
   

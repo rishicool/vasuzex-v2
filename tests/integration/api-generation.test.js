@@ -191,7 +191,7 @@ describe('Integration Test - Full API Generation', () => {
       expect(pkg.dependencies).toHaveProperty('cors');
       expect(pkg.dependencies).toHaveProperty('helmet');
       expect(pkg.dependencies).toHaveProperty('dotenv');
-      expect(pkg.dependencies).toHaveProperty('vasuzex');
+      // vasuzex and @vasuzex/database are hoisted from root workspace
     });
 
     it('should have dev and start scripts', async () => {

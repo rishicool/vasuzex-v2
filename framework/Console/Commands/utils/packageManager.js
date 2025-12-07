@@ -69,9 +69,9 @@ export async function createAppPackageJson(appName, appType, targetDir, framewor
       'db:migrate': 'node -e "console.log(\'Run migrations from project root: pnpm db:migrate\')"',
     };
     
-    // API dependencies
+    // API dependencies (vasuzex is hoisted from root, not needed here)
     packageJson.dependencies = {
-      'vasuzex': 'workspace:*',
+      '@vasuzex/database': 'workspace:*',
       'express': '^5.2.1',
       'bcryptjs': '^2.4.3',
       'jsonwebtoken': '^9.0.3',
