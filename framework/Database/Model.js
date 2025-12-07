@@ -331,7 +331,7 @@ export class Model extends GuruORMModel {
   }
 
   /**
-   * Perform insert
+   * Perform insert operation
    */
   async performInsert() {
     // Fire creating event
@@ -344,13 +344,16 @@ export class Model extends GuruORMModel {
       this.updateTimestamps();
     }
 
+    // Filter out internal tracking properties before insert
     const attributes = { ...this.attributes };
+    delete attributes.isDirtyFlag;  // Remove internal tracking fields
     
-    // Use GuruORM's insert
-    const result = await this.constructor.insert(attributes);
+    // Use query builder with explicit table - should handle reserved keywords
+    const tableName = this.constructor.tableName || this.constructor.table;
+    const result = await this.constructor.query().table(tableName).insert(attributes);
 
     // Set primary key if auto-incrementing
-    if (this.constructor.incrementing !== false) {
+    if (this.constructor.incrementing !== false && result) {
       const pk = this.constructor.primaryKey || 'id';
       this.setAttribute(pk, result.insertId || result[0] || attributes[pk]);
     }
@@ -610,6 +613,57 @@ export class Model extends GuruORMModel {
     const instance = new this(attributes);
     await instance.save();
     return instance;
+  }
+
+  /**
+   * Insert new record (static method for performInsert)
+   * Returns the insert result from query builder
+   */
+  static async insert(attributes) {
+    // Use query builder - must use column quoting for reserved words like "password"
+    const query = this.query();
+    
+    // GuruORM's query builder should handle this, but if not, wrap in try-catch
+    try {
+      const result = await query.insert(attributes);
+      return result;
+    } catch (error) {
+      // If it's a reserved word error, try with explicit column mapping
+      console.error('Insert error:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Update records matching conditions (static method for performUpdate)
+   */
+  static async updateWhere(conditions, attributes) {
+    const query = this.query();
+    
+    // Apply conditions
+    for (const [key, value] of Object.entries(conditions)) {
+      query.where(key, value);
+    }
+    
+    return await query.update(attributes);
+  }
+
+  /**
+   * Delete records by primary key (static method)
+   */
+  static async destroy(id) {
+    const pk = this.primaryKey || 'id';
+    const query = this.query();
+    
+    if (this.softDeletes) {
+      // Soft delete
+      return await query.where(pk, id).update({
+        [this.deletedAt]: new Date()
+      });
+    } else {
+      // Hard delete
+      return await query.where(pk, id).delete();
+    }
   }
 
   /**

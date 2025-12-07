@@ -4,7 +4,7 @@
  */
 
 import { join } from 'path';
-import { pathExists, readJsonFile, writeJsonFile, getProjectRoot } from './fileOperations.js';
+import { pathExists, readJsonFile, writeJsonFile, getProjectRoot, readProjectName } from './fileOperations.js';
 
 /**
  * Detect vasuzex dependency version
@@ -51,6 +51,9 @@ export async function createAppPackageJson(appName, appType, targetDir, framewor
   // Remove -api or -web suffix if already present to avoid duplication
   const cleanAppName = appName.replace(/-?(api|web)$/, '');
   
+  // Get project name for database package reference
+  const projectName = await readProjectName();
+  
   const packageJson = {
     name: `${cleanAppName}-${appType}`,
     version: '1.0.0',
@@ -71,7 +74,7 @@ export async function createAppPackageJson(appName, appType, targetDir, framewor
     
     // API dependencies (vasuzex is hoisted from root, not needed here)
     packageJson.dependencies = {
-      '@vasuzex/database': 'workspace:*',
+      [`@${projectName}/database`]: 'workspace:*',
       'express': '^5.2.1',
       'bcryptjs': '^2.4.3',
       'jsonwebtoken': '^9.0.3',

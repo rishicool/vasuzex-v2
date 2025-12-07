@@ -10,6 +10,7 @@ import {
   getAppPath,
   pathExists,
   writeFileContent,
+  readProjectName,
   
   // Package Manager
   createAppPackageJson,
@@ -140,8 +141,11 @@ async function generateAPIApp(name, targetDir) {
   
   console.log('📝 Generating API files from templates...');
   
-  // Pass app name as projectName for template interpolation
-  const result = await plopGenerateAPI(targetDir, name, name);
+  // Get actual project name from root package.json
+  const projectName = await readProjectName();
+  
+  // Pass project name and app name separately for template interpolation
+  const result = await plopGenerateAPI(targetDir, projectName, name);
   
   if (!result.success) {
     throw new Error(`Template generation failed: ${result.error}`);

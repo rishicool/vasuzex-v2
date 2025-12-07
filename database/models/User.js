@@ -10,6 +10,7 @@ export class User extends Model {
   static fillable = [
     'name',
     'email',
+    'password',
     'phone',
     'avatar',
     'role'

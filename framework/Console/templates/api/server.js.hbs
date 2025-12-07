@@ -4,10 +4,16 @@
  */
 
 import { BaseServer, Facade } from 'vasuzex';
+import dotenv from 'dotenv';
 import guruorm from 'guruorm';
 const { Capsule } = guruorm;
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { createApp as buildApp } from './app.js';
+
+// Load root .env file BEFORE anything else
+const projectRoot = process.cwd();
+dotenv.config({ path: `${projectRoot}/.env` });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,9 +23,6 @@ const __dirname = path.dirname(__filename);
  */
 class {{pascalCase appName}}Server extends BaseServer {
   constructor() {
-    // Get project root (2 levels up from apps/{name}/{type})
-    const projectRoot = path.resolve(process.cwd(), '../..');
-    
     super({
       appName: process.env.APP_NAME || '{{appName}}-api',
       projectRoot: projectRoot
@@ -67,21 +70,11 @@ class {{pascalCase appName}}Server extends BaseServer {
       // Get DB connection for Facade
       this.db = capsule.connection();
       
-      // Register DB in a simple container object for Facade
-      const container = {
-        make: (name) => {
-          if (name === 'db') return this.db;
-          throw new Error(`Service ${name} not found`);
-        },
-        has: (name) => name === 'db'
-      };
-      
-      // Set facade application
-      Facade.setFacadeApplication(container);
-      
       console.log('[{{capitalize appName}}API] 🗄️  Database connected');
+      
+      return this.db;
     } catch (error) {
-      console.error('[{{capitalize appName}}API] ❌ Database connection failed:', error.message);
+      console.error('[{{capitalize appName}}API] ❌ Database error:', error);
       throw error;
     }
   }
@@ -90,23 +83,45 @@ class {{pascalCase appName}}Server extends BaseServer {
    * Initialize {{appName}}-specific services
    */
   async initializeServices() {
-    // Initialize database first
-    await this.initializeDatabase();
-    
-    // Initialize your other services here
-    // Example: await initializeStorageService();
-    console.log('[{{capitalize appName}}API] 📦 Services initialized');
+    try {
+      // Add your service initializations here
+      console.log('[{{capitalize appName}}API] 📦 Services initialized');
+    } catch (error) {
+      console.error('[{{capitalize appName}}API] ❌ Services error:', error);
+      throw error;
+    }
   }
 
   /**
    * Create Express app
    */
-  async createApp() {
-    const { createApp } = await import('./app.js');
-    return createApp();
+  createApp() {
+    return buildApp();
+  }
+
+  /**
+   * Custom startup tasks
+   */
+  async onServerStart(server) {
+    const port = process.env.APP_PORT || 3000;
+    console.log(`🚀 {{appName}}-api running on http://localhost:${port}`);
   }
 }
 
-// Start the server
-const server = new {{pascalCase appName}}Server();
-server.start();
+/**
+ * Bootstrap and start server
+ */
+async function bootstrap() {
+  try {
+    const server = new {{pascalCase appName}}Server();
+    await server.initializeDatabase();
+    await server.initializeServices();
+    await server.start();
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+// Start server
+bootstrap();
