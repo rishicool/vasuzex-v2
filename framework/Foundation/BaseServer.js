@@ -53,6 +53,11 @@ export class BaseServer {
         await this.app.bootstrap();
       }
       
+      // Boot service providers
+      if (this.app.boot && !this.app.booted) {
+        await this.app.boot();
+      }
+      
       // Get Express instance (handle both BaseApp and plain Express)
       const express = this.app.getExpress ? this.app.getExpress() : this.app;
       

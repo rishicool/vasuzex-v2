@@ -4,6 +4,7 @@
  */
 
 import { BaseApp } from 'vasuzex';
+import { HashServiceProvider } from 'vasuzex/Foundation/Providers/HashServiceProvider';
 import { env } from './helpers/env.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { getAllRoutes } from './routes/index.js';
@@ -18,6 +19,17 @@ class {{pascalCase appName}}App extends BaseApp {
       serviceName: process.env.APP_NAME || '{{appName}}-api',
       corsOrigin: env('CORS_ORIGIN', 'http://localhost:3001')
     });
+    
+    // Register service providers
+    this.registerServiceProviders();
+  }
+  
+  /**
+   * Register service providers
+   */
+  registerServiceProviders() {
+    // Register Hash service for password hashing
+    this.register(HashServiceProvider);
   }
 
   /**
