@@ -4,6 +4,7 @@
  */
 
 import { join } from 'path';
+import path from 'path';
 import {
   createDirectories,
   writeFileContent,
@@ -20,6 +21,7 @@ import {
   generateDatabaseConfigTemplate,
   generateEnvHelperTemplate,
   generateApiEnvTemplate,
+  generateApiPackageJsonTemplate,
 } from './apiTemplates.js';
 
 /**
@@ -127,6 +129,13 @@ export async function generateCompleteAPIStructure(targetDir) {
   await generateAPIRequests(targetDir);
   await generateAPIRoutes(targetDir);
   await generateDatabaseConfig(targetDir);
+  
+  // Generate package.json with imports field for @database alias
+  const appName = path.basename(path.dirname(targetDir)); // Get app name from parent dir
+  await writeFileContent(
+    join(targetDir, 'package.json'),
+    generateApiPackageJsonTemplate(appName)
+  );
 }
 
 /**

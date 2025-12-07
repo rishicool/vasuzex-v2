@@ -4,6 +4,37 @@
  */
 
 /**
+ * Generate package.json with subpath imports for aliases
+ */
+export function generateApiPackageJsonTemplate(appName) {
+  return `{
+  "name": "@${appName}/api",
+  "version": "1.0.0",
+  "type": "module",
+  "imports": {
+    "@database": "../../../database/index.js",
+    "@database/*": "../../../database/*",
+    "@models/*": "../../../database/models/*",
+    "@config/*": "../../../config/*"
+  },
+  "scripts": {
+    "dev": "nodemon src/index.js",
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
+`;
+}
+
+/**
  * Generate BaseController
  */
 export function generateBaseControllerTemplate() {
@@ -226,7 +257,7 @@ export function generateAuthServiceTemplate() {
 
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { User } from '../../../../database/index.js';
+import { User } from '@database';
 
 export class AuthService {
   /**
@@ -327,7 +358,7 @@ export function generateAuthMiddlewareTemplate() {
  */
 
 import { AuthService } from '../services/AuthService.js';
-import { User } from '../../../../database/index.js';
+import { User } from '@database';
 
 export async function authMiddleware(req, res, next) {
   try {
