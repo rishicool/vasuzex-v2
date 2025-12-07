@@ -12,10 +12,16 @@ export function generateApiPackageJsonTemplate(appName) {
   "version": "1.0.0",
   "type": "module",
   "imports": {
-    "@database": "../../../database/index.js",
-    "@database/*": "../../../database/*",
-    "@models/*": "../../../database/models/*",
-    "@config/*": "../../../config/*"
+    "#database": "../../../database/index.js",
+    "#database/*": "../../../database/*",
+    "#models/*": "../../../database/models/*",
+    "#config/*": "../../../config/*",
+    "#controllers/*": "./src/controllers/*",
+    "#services/*": "./src/services/*",
+    "#middleware/*": "./src/middleware/*",
+    "#routes/*": "./src/routes/*",
+    "#requests/*": "./src/requests/*",
+    "#helpers/*": "./src/helpers/*"
   },
   "scripts": {
     "dev": "nodemon src/index.js",
@@ -75,9 +81,9 @@ export function generateAuthControllerTemplate() {
  * Handles user registration, login, and authentication
  */
 
-import { BaseController } from './BaseController.js';
-import { AuthService } from '../services/AuthService.js';
-import { LoginRequest, RegisterRequest } from '../requests/AuthRequests.js';
+import { BaseController } from '#controllers/BaseController.js';
+import { AuthService } from '#services/AuthService.js';
+import { LoginRequest, RegisterRequest } from '#requests/AuthRequests.js';
 
 export class AuthController extends BaseController {
   constructor() {
@@ -257,7 +263,7 @@ export function generateAuthServiceTemplate() {
 
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { User } from '@database';
+import { User } from '#database';
 
 export class AuthService {
   /**
@@ -357,8 +363,8 @@ export function generateAuthMiddlewareTemplate() {
  * Verify JWT token and attach user to request
  */
 
-import { AuthService } from '../services/AuthService.js';
-import { User } from '@database';
+import { AuthService } from '#services/AuthService.js';
+import { User } from '#database';
 
 export async function authMiddleware(req, res, next) {
   try {
