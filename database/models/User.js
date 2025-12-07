@@ -1,5 +1,5 @@
 import Model from 'vasuzex/Database/Model';
-import { Hash } from 'vasuzex/Support/Facades';
+import bcrypt from 'bcryptjs';
 
 export class User extends Model {
   static tableName = 'users';
@@ -33,7 +33,7 @@ export class User extends Model {
    */
   async setPasswordAttribute(value) {
     if (value) {
-      this.attributes.password = await Hash.make(value);
+      this.attributes.password = await bcrypt.hash(value, 10);
     }
   }
 
@@ -62,7 +62,7 @@ export class User extends Model {
    * Verify password
    */
   async verifyPassword(password) {
-    return await Hash.check(password, this.attributes.password);
+    return await bcrypt.compare(password, this.attributes.password);
   }
 
   /**

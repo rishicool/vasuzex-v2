@@ -348,9 +348,8 @@ export class Model extends GuruORMModel {
     const attributes = { ...this.attributes };
     delete attributes.isDirtyFlag;  // Remove internal tracking fields
     
-    // Use query builder with explicit table - should handle reserved keywords
-    const tableName = this.constructor.tableName || this.constructor.table;
-    const result = await this.constructor.query().table(tableName).insert(attributes);
+    // Use query builder - GuruORM's query() already has table attached
+    const result = await this.constructor.query().insert(attributes);
 
     // Set primary key if auto-incrementing
     if (this.constructor.incrementing !== false && result) {

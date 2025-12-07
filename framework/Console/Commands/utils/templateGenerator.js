@@ -223,6 +223,15 @@ APP_ENV=development
 # ⚠️  IMPORTANT: Change APP_PORT if running multiple apps
 # Each app needs a unique port number
 # Example: 3000, 3001, 3002, etc.
+
+# ℹ️  NOTE: Database configuration is managed in root .env file
+# The server automatically loads database config from project root
+# If you need to override database settings for this app only, uncomment below:
+# POSTGRES_HOST=localhost
+# POSTGRES_PORT=5432
+# POSTGRES_DB=${appName}_db
+# POSTGRES_USER=postgres
+# POSTGRES_PASSWORD=
 `;
 }
 
