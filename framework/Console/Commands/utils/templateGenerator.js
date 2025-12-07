@@ -49,14 +49,6 @@ class ${className} extends BaseApp {
   }
 
   /**
-   * Override security middleware setup to bypass config service
-   */
-  setupSecurityMiddleware() {
-    // Skip security middleware for pilot test
-    // In production, load actual security config
-  }
-
-  /**
    * Setup custom middleware (after body parsers, before routes)
    */
   setupCustomMiddleware() {

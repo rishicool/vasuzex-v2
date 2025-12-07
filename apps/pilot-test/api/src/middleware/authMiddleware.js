@@ -4,7 +4,7 @@
  */
 
 import { AuthService } from '../services/AuthService.js';
-import { User } from '../models/User.js';
+import { User } from '@PROJECT_NAME/database';
 
 export async function authMiddleware(req, res, next) {
   try {

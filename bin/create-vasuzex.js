@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
 import ora from 'ora';
 import chalk from 'chalk';
+import { GENERATOR_CONFIG } from '../framework/Console/config/generator.config.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -148,7 +149,7 @@ async function copyConfigFiles(targetDir, spinner) {
 /**
  * Copy database files from framework
  */
-async function copyDatabaseFiles(targetDir, spinner) {
+async function copyDatabaseFiles(targetDir, spinner, projectName) {
   spinner.text = 'Setting up database structure...';
   
   const dbModelsSource = path.join(frameworkRoot, 'database/models');
@@ -162,6 +163,35 @@ async function copyDatabaseFiles(targetDir, spinner) {
   if (await fs.pathExists(dbMigrationsSource)) {
     await fs.copy(dbMigrationsSource, dbMigrationsTarget);
   }
+  
+  // Create database/index.js for exports
+  const dbIndexContent = `/**
+ * Database Models Index
+ * Central export for all models
+ */
+
+export { User } from './models/User.js';
+export { Post } from './models/Post.js';
+export { Comment } from './models/Comment.js';
+export { Task } from './models/Task.js';
+`;
+  await fs.writeFile(path.join(targetDir, 'database/index.js'), dbIndexContent);
+  
+  // Create database/package.json for workspace package
+  const dbPackageJson = {
+    name: `@${projectName}/database`,
+    version: '1.0.0',
+    type: 'module',
+    main: './index.js',
+    exports: {
+      '.': './index.js',
+      './models/*': './models/*.js'
+    }
+  };
+  await fs.writeFile(
+    path.join(targetDir, 'database/package.json'),
+    JSON.stringify(dbPackageJson, null, 2) + '\n'
+  );
 }
 
 /**
@@ -269,6 +299,7 @@ async function createPnpmWorkspace(targetDir) {
   - 'apps/*'
   - 'apps/*/api'
   - 'apps/*/web'
+  - 'database'
 `;
   
   await fs.writeFile(path.join(targetDir, 'pnpm-workspace.yaml'), workspaceContent, 'utf8');
@@ -449,7 +480,7 @@ pnpm db:seed                   # Seed database
 
 ## Documentation
 
-See [Vasuzex Documentation](https://github.com/rishicool/vasuzex/tree/main/docs)
+See [Vasuzex Documentation](${GENERATOR_CONFIG.package.documentationUrl})
 `;
   await fs.writeFile(path.join(targetDir, 'README.md'), readmeContent);
 }
@@ -636,9 +667,9 @@ function displaySuccessMessage(projectName, answers) {
   console.log(chalk.white('  pnpm db:seed                 - Run seeders'));
   console.log(chalk.white('  pnpm db:reset                - Fresh migrate + seed\n'));
   
-  console.log(chalk.cyan('📖 Documentation: https://github.com/rishicool/vasuzex/tree/main/docs'));
+  console.log(chalk.cyan(`📖 Documentation: ${GENERATOR_CONFIG.package.documentationUrl}`));
   console.log(chalk.cyan('🔧 Config files: All in ./config/ directory'));
-  console.log(chalk.cyan('Happy coding! 🎉\n'));
+  console.log(chalk.cyan(`${GENERATOR_CONFIG.messages.happyCoding}\n`));
 }
 
 /**
@@ -670,7 +701,7 @@ async function createProject(projectName) {
     await copyConfigFiles(targetDir, spinner);
     
     // 5. Copy database files
-    await copyDatabaseFiles(targetDir, spinner);
+    await copyDatabaseFiles(targetDir, spinner, projectName);
     
     // 6. Create package.json
     await createPackageJson(projectName, targetDir, spinner);

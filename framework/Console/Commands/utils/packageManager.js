@@ -48,8 +48,11 @@ export async function detectVasuzexDependency(appDir = null) {
  * Create package.json for app (V2 - Minimal, uses hoisted dependencies)
  */
 export async function createAppPackageJson(appName, appType, targetDir, framework = null) {
+  // Remove -api or -web suffix if already present to avoid duplication
+  const cleanAppName = appName.replace(/-?(api|web)$/, '');
+  
   const packageJson = {
-    name: `${appName}-${appType}`,
+    name: `${cleanAppName}-${appType}`,
     version: '1.0.0',
     description: `${appName} ${appType} application`,
     type: 'module',
@@ -66,13 +69,15 @@ export async function createAppPackageJson(appName, appType, targetDir, framewor
       'db:migrate': 'node -e "console.log(\'Run migrations from project root: pnpm db:migrate\')"',
     };
     
-    // API dependencies - vasuzex is hoisted from root, no need to declare
+    // API dependencies
     packageJson.dependencies = {
+      'vasuzex': 'workspace:*',
       'express': '^5.2.1',
       'bcryptjs': '^2.4.3',
       'jsonwebtoken': '^9.0.3',
       'joi': '^17.13.3',
       'cors': '^2.8.5',
+      'helmet': '^8.1.0',
       'dotenv': '^16.6.1',
       'pg': '^8.16.3',
       'guruorm': '^2.0.0'
@@ -98,7 +103,9 @@ export async function createAppPackageJson(appName, appType, targetDir, framewor
         'react-dom': '^18.2.0',
         'react-router-dom': '^6.28.0',
         '@reduxjs/toolkit': '^2.5.0',
-        'redux-persist': '^6.0.0'
+        'redux-persist': '^6.0.0',
+        'yup': '^1.0.0', // Required for validation (login/registration)
+        'sweetalert2': '^11.0.0', // Required for alerts/notifications
       };
       
       packageJson.devDependencies = {
@@ -107,7 +114,9 @@ export async function createAppPackageJson(appName, appType, targetDir, framewor
       };
     } else if (framework === 'vue') {
       packageJson.dependencies = {
-        'vue': '^3.4.0'
+        'vue': '^3.4.0',
+        'yup': '^1.0.0', // Required for validation
+        'sweetalert2': '^11.0.0', // Required for alerts/notifications
       };
       
       packageJson.devDependencies = {
@@ -116,7 +125,9 @@ export async function createAppPackageJson(appName, appType, targetDir, framewor
       };
     } else if (framework === 'svelte') {
       packageJson.dependencies = {
-        'svelte': '^4.2.0'
+        'svelte': '^4.2.0',
+        'yup': '^1.0.0', // Required for validation
+        'sweetalert2': '^11.0.0', // Required for alerts/notifications
       };
       
       packageJson.devDependencies = {

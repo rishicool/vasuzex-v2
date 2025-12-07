@@ -1,3 +1,4 @@
+import express from 'express';
 import { Application } from './Application.js';
 import { applySecurityMiddleware } from '../Http/Middleware/SecurityMiddleware.js';
 
@@ -14,6 +15,7 @@ export class BaseApp extends Application {
     this.serviceName = options.serviceName || options.appName || 'app';
     this.appName = options.appName;
     this.appType = options.appType;
+    this.corsOrigin = options.corsOrigin; // Store CORS origin for security middleware
     this.middlewareSetup = false;
     this.routesSetup = false;
     this.securitySetup = false;
@@ -38,6 +40,9 @@ export class BaseApp extends Application {
       this.setupSecurityMiddleware();
       this.securitySetup = true;
     }
+
+    // Setup core body parsing middleware (required for API)
+    this.setupBodyParsing();
 
     // Setup custom middleware
     if (!this.middlewareSetup) {
@@ -72,7 +77,31 @@ export class BaseApp extends Application {
   setupSecurityMiddleware() {
     try {
       // Get security configuration (may not exist in test environment)
-      const securityConfig = this.has('config') ? this.config('security', {}) : {};
+      let securityConfig = this.has('config') ? this.config('security', {}) : {};
+      
+      // If no config exists but corsOrigin is provided, create minimal CORS config
+      if (this.corsOrigin && (!securityConfig || Object.keys(securityConfig).length === 0)) {
+        securityConfig = {
+          helmet: false, // Disable helmet if no config
+          cors: {
+            origin: this.corsOrigin,
+            credentials: true,
+            methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+            allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+            exposedHeaders: ['X-Total-Count', 'X-Page-Count'],
+            maxAge: 86400,
+            preflightContinue: false,
+            optionsSuccessStatus: 204
+          },
+          csrf: { enabled: false } // Disable CSRF by default for API
+        };
+      } else if (this.corsOrigin && securityConfig.cors) {
+        // Override CORS origin if config exists
+        securityConfig.cors = {
+          ...securityConfig.cors,
+          origin: this.corsOrigin
+        };
+      }
       
       // Only apply if configuration exists and not explicitly disabled
       if (securityConfig && Object.keys(securityConfig).length > 0) {
@@ -82,6 +111,18 @@ export class BaseApp extends Application {
       // Silently skip if config not available (e.g., in tests)
       // This is expected behavior when app is not bootstrapped
     }
+  }
+
+  /**
+   * Setup body parsing middleware
+   * Core middleware for parsing JSON and URL-encoded request bodies
+   */
+  setupBodyParsing() {
+    // Parse JSON request bodies
+    this.express.use(express.json());
+    
+    // Parse URL-encoded request bodies (forms)
+    this.express.use(express.urlencoded({ extended: true }));
   }
 
   /**

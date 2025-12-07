@@ -12,5 +12,8 @@
   "imports": {
     "#framework": "./index.js",
     "#framework/*": "./*"
+  },
+  "devDependencies": {
+    "plop": "^4.0.1"
   }
 }

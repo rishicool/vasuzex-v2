@@ -9,14 +9,8 @@ export * from './fileOperations.js';
 // Package Manager
 export * from './packageManager.js';
 
-// Template Generator
+// Template Generator (for common files and Web templates)
 export * from './templateGenerator.js';
-
-// API Templates
-export * from './apiTemplates.js';
-
-// API Structure
-export * from './apiStructure.js';
 
 // Web Structure
 export * from './webStructure.js';
@@ -35,3 +29,6 @@ export * from './installer.js';
 
 // Console Display
 export * from './consoleDisplay.js';
+
+// Plop Generator (for API templates)
+export * from './plopGenerator.js';

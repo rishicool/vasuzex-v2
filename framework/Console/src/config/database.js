@@ -1,0 +1,53 @@
+/**
+ * Database Configuration
+ * Database connection configuration
+ */
+
+import { env } from '../helpers/env.js';
+
+export const databaseConfig = {
+  connection: env('DB_CONNECTION', 'postgresql'),
+  
+  connections: {
+    postgresql: {
+      client: 'pg',
+      connection: {
+        host: env('POSTGRES_HOST', 'localhost'),
+        port: parseInt(env('POSTGRES_PORT', '5432')),
+        database: env('POSTGRES_DB', 'test-project'),
+        user: env('POSTGRES_USER', 'postgres'),
+        password: env('POSTGRES_PASSWORD', ''),
+      },
+      pool: {
+        min: 2,
+        max: 10,
+      },
+      migrations: {
+        tableName: 'migrations',
+      },
+    },
+    
+    mysql: {
+      client: 'mysql2',
+      connection: {
+        host: env('DB_HOST', 'localhost'),
+        port: parseInt(env('DB_PORT', '3306')),
+        database: env('DB_DATABASE', 'test-project'),
+        user: env('DB_USERNAME', 'root'),
+        password: env('DB_PASSWORD', ''),
+      },
+      pool: {
+        min: 2,
+        max: 10,
+      },
+    },
+    
+    sqlite: {
+      client: 'sqlite3',
+      connection: {
+        filename: env('DB_DATABASE', './database/test-project.sqlite'),
+      },
+      useNullAsDefault: true,
+    },
+  },
+};

@@ -15,17 +15,12 @@ import {
   createAppPackageJson,
   addRootScripts,
   
-  // Template Generator
-  generateAppTemplate,
-  generateServerTemplate,
+  // Template Generator (for common files only)
   generateEnvTemplate,
   generateGitignoreTemplate,
   generateReadmeTemplate,
   
-  // API Structure
-  generateCompleteAPIStructure,
-  
-  // Web Structure
+  // Web Structure (will be migrated to Plop later)
   generateCompleteWebStructure,
   
   // Validation
@@ -140,20 +135,22 @@ async function generateSingleApp(name, type, framework) {
  * Generate API application
  */
 async function generateAPIApp(name, targetDir) {
-  // Create complete API structure (controllers, models, services, etc.)
-  await generateCompleteAPIStructure(targetDir);
+  // Get project name from package.json
+  const { readProjectName } = await import('./utils/index.js');
+  const projectName = await readProjectName();
   
-  // Generate app.js (BaseApp inheritance)
-  await writeFileContent(
-    join(targetDir, 'src/app.js'),
-    generateAppTemplate(name)
-  );
+  // Use Plop for template generation (modern approach)
+  const { generateAPIApp: plopGenerateAPI } = await import('./utils/plopGenerator.js');
   
-  // Generate index.js (BaseServer inheritance)
-  await writeFileContent(
-    join(targetDir, 'src/index.js'),
-    generateServerTemplate(name)
-  );
+  console.log('📝 Generating API files from templates...');
+  
+  const result = await plopGenerateAPI(targetDir, projectName, name);
+  
+  if (!result.success) {
+    throw new Error(`Template generation failed: ${result.error}`);
+  }
+  
+  console.log(`✓ Generated ${result.filesCreated.length} files`);
 }
 
 /**

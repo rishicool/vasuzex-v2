@@ -46,6 +46,20 @@ export async function writeJsonFile(filePath, data) {
 }
 
 /**
+ * Read project name from root package.json
+ */
+export async function readProjectName() {
+  try {
+    const rootPackageJson = join(process.cwd(), 'package.json');
+    const pkg = await readJsonFile(rootPackageJson);
+    return pkg.name || 'my-app';
+  } catch (error) {
+    console.warn('⚠️  Could not read project name from package.json, using default');
+    return 'my-app';
+  }
+}
+
+/**
  * Check if path exists
  */
 export function pathExists(path) {

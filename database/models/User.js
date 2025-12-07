@@ -63,6 +63,20 @@ export class User extends Model {
   async verifyPassword(password) {
     return await Hash.check(password, this.attributes.password);
   }
+
+  /**
+   * Find user by email (static method for AuthService)
+   */
+  static async findByEmail(email) {
+    return await this.where('email', email).first();
+  }
+
+  /**
+   * Find user by ID (static method)
+   */
+  static async findById(id) {
+    return await this.where('id', id).first();
+  }
 }
 
 export default User;
