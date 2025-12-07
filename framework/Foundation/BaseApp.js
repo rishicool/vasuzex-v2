@@ -169,7 +169,19 @@ export class BaseApp extends Application {
   async boot() {
     if (this.booted) return;
 
-    // Boot all registered service providers
+    // Bootstrap application first
+    if (!this.bootstrapped) {
+      await this.bootstrap();
+    }
+
+    // Register phase - call register() on all service providers
+    for (const provider of this.providers) {
+      if (typeof provider.register === 'function') {
+        await provider.register();
+      }
+    }
+
+    // Boot phase - call boot() on all service providers
     for (const provider of this.providers) {
       if (typeof provider.boot === 'function') {
         await provider.boot();

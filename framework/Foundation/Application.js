@@ -88,8 +88,11 @@ export class Application extends Container {
       await this.bootstrap();
     }
 
+    console.log('[Application] Booting', this.providers.length, 'service providers...');
+    
     // Register phase
     for (const provider of this.providers) {
+      console.log('[Application] Registering provider:', provider.constructor.name);
       await provider.register();
     }
 
@@ -99,6 +102,7 @@ export class Application extends Container {
     }
 
     this.booted = true;
+    console.log('[Application] All service providers booted');
   }
 
   /**

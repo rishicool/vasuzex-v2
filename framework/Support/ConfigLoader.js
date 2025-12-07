@@ -39,7 +39,11 @@ export class ConfigLoader {
     const envPath = path.join(this.rootDir, this.envFile);
     
     if (!fs.existsSync(envPath)) {
-      console.warn(`⚠️  .env file not found at ${envPath}`);
+      // Only warn if no environment variables are loaded at all
+      // (database module may have already loaded .env from project root)
+      if (!process.env.APP_NAME && !process.env.DB_CONNECTION) {
+        console.warn(`⚠️  .env file not found at ${envPath}`);
+      }
       return;
     }
 

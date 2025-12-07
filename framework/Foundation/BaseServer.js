@@ -54,15 +54,20 @@ export class BaseServer {
       }
       
       // Boot service providers
+      console.log('[BaseServer] Checking boot - has boot?', typeof this.app.boot, 'already booted?', this.app.booted);
       if (this.app.boot && !this.app.booted) {
+        console.log('[BaseServer] Calling boot()...');
         await this.app.boot();
+        console.log('[BaseServer] boot() completed');
       }
       
       // Build the app (setup middleware and routes) after service providers are booted
       // build() returns the Express instance with all middleware and routes configured
+      console.log('[BaseServer] Has build?', typeof this.app.build);
       const express = (this.app.build && typeof this.app.build === 'function')
         ? this.app.build()
         : (this.app.getExpress ? this.app.getExpress() : this.app);
+      console.log('[BaseServer] Express instance ready, type:', typeof express);
       
       return new Promise((resolve) => {
         this.server = express.listen(this.port, () => {
