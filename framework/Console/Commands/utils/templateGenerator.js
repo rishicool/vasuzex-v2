@@ -253,39 +253,45 @@ dist
 export function generateReadmeTemplate(appName, appType) {
   return `# ${capitalize(appName)} ${appType.toUpperCase()}
 
-${capitalize(appName)} application with authentication and framework integration.
+${capitalize(appName)} application - Laravel-style monorepo architecture.
 
-## Structure
+## 🏗️ Structure
 
 \`\`\`
 apps/${appName}/${appType}/
 ├── src/
 │   ├── controllers/        # Controllers (extend BaseController)
-│   │   ├── BaseController.js
-│   │   └── AuthController.js
-│   ├── models/            # Data models
-│   │   └── User.js
-│   ├── services/          # Business logic
-│   │   └── AuthService.js
+│   ├── services/          # Business logic layer
 │   ├── middleware/        # Express middleware
-│   │   ├── authMiddleware.js
-│   │   └── errorHandler.js
-│   ├── routes/            # API routes
-│   │   └── auth.routes.js
-│   ├── requests/          # Request validators
-│   │   └── AuthRequests.js
+│   ├── routes/            # API route definitions
+│   ├── requests/          # Joi validation schemas
 │   ├── app.js             # Express app setup
-│   └── index.js           # Framework bootstrap
-├── package.json
-├── .env
-└── README.md
+│   └── index.js           # Server bootstrap
+├── package.json           # App dependencies
+└── README.md              # This file
 \`\`\`
 
-## Centralized Config & Database
+## 🎯 Centralized Architecture
 
-This app uses:
-- **Config**: \`/config/\` from project root (NO app-level config)
-- **Database**: \`/database/\` from project root (centralized models & migrations)
+**NO app-level configuration or database!** Everything is centralized:
+
+### 📁 Root Configuration
+- **Environment:** \`/.env\` (single source of truth)
+- **Config Files:** \`/config/*.cjs\` (per environment)
+- **Database:** \`/database/\` package (models, migrations, seeders)
+
+### 📦 Workspace Packages
+- \`@{projectName}/database\` - Centralized DB connection & models
+- All dependencies hoisted to root \`node_modules/\`
+
+### 💡 Usage Example
+\`\`\`javascript
+// Import centralized database
+import { User, Post } from '@{projectName}/database';
+
+// Use models directly - DB already connected!
+const user = await User.find(1);
+\`\`\`
 
 ## Installation
 

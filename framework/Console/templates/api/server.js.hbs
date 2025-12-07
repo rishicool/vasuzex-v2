@@ -1,22 +1,18 @@
 /**
- * {{capitalize appName}} Server
- * Extends BaseServer from framework with database support
+ * {{capitalize appName}} API Server
+ * Extends BaseServer - Database is centralized in @{{projectName}}/database
  */
 
-import { BaseServer, Facade } from 'vasuzex';
+import { BaseServer } from 'vasuzex';
 import dotenv from 'dotenv';
-import guruorm from 'guruorm';
-const { Capsule } = guruorm;
-import path from 'path';
-import { fileURLToPath } from 'url';
 import { createApp as buildApp } from './app.js';
 
-// Load root .env file BEFORE anything else
+// Import centralized database (triggers connection automatically)
+import '@{{projectName}}/database';
+
+// Load root .env file
 const projectRoot = process.cwd();
 dotenv.config({ path: `${projectRoot}/.env` });
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 /**
  * {{pascalCase appName}}Server - Extends BaseServer
@@ -27,56 +23,21 @@ class {{pascalCase appName}}Server extends BaseServer {
       appName: process.env.APP_NAME || '{{appName}}-api',
       projectRoot: projectRoot
     });
-    
-    this.db = null;
   }
 
   /**
    * Validate configuration
    */
   validateConfig() {
-    // Add your custom config validations here
-    super.validateConfig();
-  }
-
-  /**
-   * Initialize database connection
-   */
-  async initializeDatabase() {
-    try {
-      // Use root config (centralized)
-      const dbUrl = process.env.DATABASE_URL || 'postgresql://postgres@localhost:5432/{{appName}}_db';
-      
-      // Create capsule instance (GuruORM)
-      const capsule = new Capsule();
-      
-      // Add PostgreSQL connection
-      capsule.addConnection({
-        driver: 'pgsql',
-        host: process.env.POSTGRES_HOST || 'localhost',
-        port: parseInt(process.env.POSTGRES_PORT) || 5432,
-        database: process.env.POSTGRES_DB || '{{appName}}_db',
-        username: process.env.POSTGRES_USER || 'postgres',
-        password: process.env.POSTGRES_PASSWORD || '',
-        charset: 'utf8',
-        prefix: '',
-        schema: 'public',
-      });
-      
-      // Make capsule globally available
-      capsule.setAsGlobal();
-      capsule.bootEloquent();
-      
-      // Get DB connection for Facade
-      this.db = capsule.connection();
-      
-      console.log('[{{capitalize appName}}API] 🗄️  Database connected');
-      
-      return this.db;
-    } catch (error) {
-      console.error('[{{capitalize appName}}API] ❌ Database error:', error);
-      throw error;
+    const required = ['POSTGRES_HOST', 'POSTGRES_DB', 'POSTGRES_USER'];
+    const missing = required.filter(key => !process.env[key]);
+    
+    if (missing.length > 0) {
+      console.error(`❌ Missing required environment variables: ${missing.join(', ')}`);
+      process.exit(1);
     }
+    
+    super.validateConfig();
   }
 
   /**
@@ -85,6 +46,8 @@ class {{pascalCase appName}}Server extends BaseServer {
   async initializeServices() {
     try {
       // Add your service initializations here
+      // Database is already initialized by importing @{{projectName}}/database
+      
       console.log('[{{capitalize appName}}API] 📦 Services initialized');
     } catch (error) {
       console.error('[{{capitalize appName}}API] ❌ Services error:', error);
@@ -105,6 +68,7 @@ class {{pascalCase appName}}Server extends BaseServer {
   async onServerStart(server) {
     const port = process.env.APP_PORT || 3000;
     console.log(`🚀 {{appName}}-api running on http://localhost:${port}`);
+    console.log(`   Database: ${process.env.POSTGRES_DB}@${process.env.POSTGRES_HOST}`);
   }
 }
 
@@ -114,7 +78,6 @@ class {{pascalCase appName}}Server extends BaseServer {
 async function bootstrap() {
   try {
     const server = new {{pascalCase appName}}Server();
-    await server.initializeDatabase();
     await server.initializeServices();
     await server.start();
   } catch (error) {

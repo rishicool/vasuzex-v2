@@ -163,16 +163,12 @@ async function generateWebApp(name, targetDir, framework) {
 }
 
 /**
- * Generate common files (package.json, .env, README, .gitignore)
+ * Generate common files (package.json, README, .gitignore)
+ * NO .env files at app level - all config is centralized at root!
  */
 async function generateCommonFiles(name, type, targetDir, framework) {
   // package.json
   await createAppPackageJson(name, type, targetDir, framework);
-  
-  // .env and .env.example
-  const envContent = generateEnvTemplate(name, type);
-  await writeFileContent(join(targetDir, '.env.example'), envContent);
-  await writeFileContent(join(targetDir, '.env'), envContent);
   
   // README.md (skip for web with framework as it's generated separately)
   if (type !== 'web' || !framework) {
@@ -187,4 +183,7 @@ async function generateCommonFiles(name, type, targetDir, framework) {
     join(targetDir, '.gitignore'),
     generateGitignoreTemplate()
   );
+  
+  // NOTE: NO .env files here!
+  // All configuration is in root .env file (Laravel monorepo style)
 }
