@@ -1,0 +1,61 @@
+/**
+ * Database Models Index
+ * Central export for all models
+ */
+
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { Capsule } from 'vasuzex/Database';
+
+// Load environment variables from root .env
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const rootDir = path.resolve(__dirname, '..');
+dotenv.config({ path: path.join(rootDir, '.env') });
+
+// Initialize database connection
+const capsule = new Capsule();
+
+// Determine database driver from env
+const dbConnection = process.env.DB_CONNECTION || 'postgresql';
+let driver = 'pgsql';
+let connection = {};
+
+if (dbConnection === 'postgresql') {
+  driver = 'pgsql';
+  connection = {
+    host: process.env.POSTGRES_HOST || 'localhost',
+    port: parseInt(process.env.POSTGRES_PORT) || 5432,
+    database: process.env.POSTGRES_DB || 'vasuzex_dev',
+    username: process.env.POSTGRES_USER || 'postgres',
+    password: process.env.POSTGRES_PASSWORD || '',
+    charset: 'utf8',
+    schema: 'public',
+  };
+} else if (dbConnection === 'mysql') {
+  driver = 'mysql';
+  connection = {
+    host: process.env.DB_HOST || 'localhost',
+    port: parseInt(process.env.DB_PORT) || 3306,
+    database: process.env.DB_DATABASE || 'vasuzex_dev',
+    user: process.env.DB_USERNAME || 'root',
+    password: process.env.DB_PASSWORD || '',
+    charset: 'utf8mb4',
+  };
+} else if (dbConnection === 'sqlite') {
+  driver = 'sqlite3';
+  connection = {
+    filename: process.env.DB_DATABASE || './database.sqlite',
+  };
+}
+
+capsule.addConnection({
+  driver,
+  ...connection,
+});
+
+capsule.bootEloquent();
+capsule.setAsGlobal();
+
+// Export models
+export { User } from './models/User.js';

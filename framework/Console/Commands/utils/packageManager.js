@@ -72,23 +72,8 @@ export async function createAppPackageJson(appName, appType, targetDir, framewor
       'db:migrate': 'node -e "console.log(\'Run migrations from project root: pnpm db:migrate\')"',
     };
     
-    // API dependencies (vasuzex is hoisted from root, not needed here)
-    packageJson.dependencies = {
-      [`@${projectName}/database`]: 'workspace:*',
-      'express': '^5.2.1',
-      'bcryptjs': '^2.4.3',
-      'jsonwebtoken': '^9.0.3',
-      'joi': '^17.13.3',
-      'cors': '^2.8.5',
-      'helmet': '^8.1.0',
-      'dotenv': '^16.6.1',
-      'pg': '^8.16.3',
-      'guruorm': '^2.0.0'
-    };
-    
-    packageJson.devDependencies = {
-      'nodemon': '^3.1.11'
-    };
+    // V2: NO dependencies - all hoisted from root
+    // Apps access database via workspace package @{projectName}/database
   }
   
   // Web-specific configuration
@@ -99,45 +84,8 @@ export async function createAppPackageJson(appName, appType, targetDir, framewor
       preview: 'vite preview',
     };
     
-    // Web dependencies based on framework
-    if (framework === 'react') {
-      packageJson.dependencies = {
-        'react': '^18.2.0',
-        'react-dom': '^18.2.0',
-        'react-router-dom': '^6.28.0',
-        '@reduxjs/toolkit': '^2.5.0',
-        'redux-persist': '^6.0.0',
-        'yup': '^1.0.0', // Required for validation (login/registration)
-        'sweetalert2': '^11.0.0', // Required for alerts/notifications
-      };
-      
-      packageJson.devDependencies = {
-        'vite': '^5.0.0',
-        '@vitejs/plugin-react': '^4.2.1'
-      };
-    } else if (framework === 'vue') {
-      packageJson.dependencies = {
-        'vue': '^3.4.0',
-        'yup': '^1.0.0', // Required for validation
-        'sweetalert2': '^11.0.0', // Required for alerts/notifications
-      };
-      
-      packageJson.devDependencies = {
-        'vite': '^5.0.0',
-        '@vitejs/plugin-vue': '^5.0.0'
-      };
-    } else if (framework === 'svelte') {
-      packageJson.dependencies = {
-        'svelte': '^4.2.0',
-        'yup': '^1.0.0', // Required for validation
-        'sweetalert2': '^11.0.0', // Required for alerts/notifications
-      };
-      
-      packageJson.devDependencies = {
-        'vite': '^5.0.0',
-        '@sveltejs/vite-plugin-svelte': '^3.0.0'
-      };
-    }
+    // V2: NO dependencies - all hoisted from root
+    // Framework-specific deps (react, vue, svelte) are in root package.json
   }
   
   await writeJsonFile(join(targetDir, 'package.json'), packageJson);

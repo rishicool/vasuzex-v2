@@ -364,14 +364,24 @@ export class Model extends GuruORMModel {
     // Filter out internal tracking properties before insert
     const attributes = { ...this.attributes };
     delete attributes.isDirtyFlag;  // Remove internal tracking fields
+    delete attributes.pendingMutators;  // Remove async mutator tracking
+    delete attributes.isHydrating;  // Remove hydration flag
+    delete attributes.exists;  // Remove exists flag
+    delete attributes.wasRecentlyCreated;  // Remove recently created flag
+    delete attributes.original;  // Remove original tracking
+    delete attributes.relations;  // Remove relations (handled separately)
     
     // Use query builder - GuruORM's query() already has table attached
-    const result = await this.constructor.query().insert(attributes);
+    // Use insertGetId() to automatically get the inserted ID with RETURNING clause
+    const pk = this.constructor.primaryKey || 'id';
+    
+    const insertedId = await this.constructor
+      .query()
+      .insertGetId(attributes);
 
     // Set primary key if auto-incrementing
-    if (this.constructor.incrementing !== false && result) {
-      const pk = this.constructor.primaryKey || 'id';
-      this.setAttribute(pk, result.insertId || result[0] || attributes[pk]);
+    if (this.constructor.incrementing !== false && insertedId) {
+      this.setAttribute(pk, insertedId);
     }
 
     this.syncOriginal();
@@ -564,6 +574,12 @@ export class Model extends GuruORMModel {
    */
   toArray() {
     const array = { ...this.attributes };
+
+    // Remove internal tracking properties that GuruORM Proxy incorrectly puts in attributes
+    // (These should be on the instance, but Proxy's set trap redirects them to attributes)
+    delete array.isDirtyFlag;
+    delete array.pendingMutators;
+    delete array.isHydrating;
 
     // Add relations
     for (const [key, value] of Object.entries(this.relations)) {

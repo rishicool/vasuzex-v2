@@ -176,11 +176,24 @@ export function dd(value, label = null, exitCode = 1) {
 }
 
 /**
+ * Dump value and continue (Laravel's dump())
+ * Alias for inspect() - more Laravel-like naming
+ * 
+ * @param {*} value - Value to dump
+ * @param {string} label - Optional label
+ * @returns {*} The original value
+ */
+export function dump(value, label = null) {
+  return inspect(value, label);
+}
+
+/**
  * Debug helper class for OOP approach
  */
 export class DebugHelper {
   static inspect = inspect;
   static dd = dd;
+  static dump = dump;
 }
 
 export default DebugHelper;

@@ -8,11 +8,29 @@ import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
 import ora from 'ora';
 import chalk from 'chalk';
+import Handlebars from 'handlebars';
 import { GENERATOR_CONFIG } from '../framework/Console/config/generator.config.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const frameworkRoot = path.resolve(__dirname, '..');
+const templatesDir = path.join(__dirname, 'templates');
+
+/**
+ * ====================
+ * HELPER FUNCTIONS
+ * ====================
+ */
+
+/**
+ * Render template file with Handlebars
+ */
+async function renderTemplate(templateName, data) {
+  const templatePath = path.join(templatesDir, templateName);
+  const templateContent = await fs.readFile(templatePath, 'utf8');
+  const template = Handlebars.compile(templateContent);
+  return template(data);
+}
 
 /**
  * ====================
@@ -165,16 +183,7 @@ async function copyDatabaseFiles(targetDir, spinner, projectName) {
   }
   
   // Create database/index.js for exports
-  const dbIndexContent = `/**
- * Database Models Index
- * Central export for all models
- */
-
-export { User } from './models/User.js';
-export { Post } from './models/Post.js';
-export { Comment } from './models/Comment.js';
-export { Task } from './models/Task.js';
-`;
+  const dbIndexContent = await renderTemplate('database-index.js.hbs', {});
   await fs.writeFile(path.join(targetDir, 'database/index.js'), dbIndexContent);
   
   // Create database/package.json for workspace package
@@ -253,9 +262,13 @@ async function createPackageJson(projectName, targetDir, spinner) {
       react: '^18.2.0',
       'react-dom': '^18.2.0',
       'react-redux': '^9.1.0',
+      'react-router-dom': '^6.28.0',
       '@reduxjs/toolkit': '^2.0.1',
+      'redux-persist': '^6.0.0',
       vue: '^3.4.0',
-      svelte: '^4.2.0'
+      svelte: '^4.2.0',
+      yup: '^1.0.0',
+      sweetalert2: '^11.0.0'
     },
     devDependencies: {
       '@jest/globals': '^29.7.0',
@@ -303,13 +316,7 @@ async function createPackageJson(projectName, targetDir, spinner) {
  * Create pnpm-workspace.yaml
  */
 async function createPnpmWorkspace(targetDir) {
-  const workspaceContent = `packages:
-  - 'apps/*'
-  - 'apps/*/api'
-  - 'apps/*/web'
-  - 'database'
-`;
-  
+  const workspaceContent = await renderTemplate('pnpm-workspace.yaml.hbs', {});
   await fs.writeFile(path.join(targetDir, 'pnpm-workspace.yaml'), workspaceContent, 'utf8');
 }
 
@@ -318,17 +325,7 @@ async function createPnpmWorkspace(targetDir) {
  * Forces all dependencies to root node_modules
  */
 async function createNpmrc(targetDir) {
-  const npmrcContent = `hoist=true
-hoist-pattern[]=*
-shamefully-hoist=true
-shared-workspace-lockfile=true
-strict-peer-dependencies=false
-auto-install-peers=true
-public-hoist-pattern[]=*types*
-public-hoist-pattern[]=*eslint*
-public-hoist-pattern[]=*prettier*
-`;
-  
+  const npmrcContent = await renderTemplate('.npmrc.hbs', {});
   await fs.writeFile(path.join(targetDir, '.npmrc'), npmrcContent, 'utf8');
 }
 
@@ -422,22 +419,7 @@ LOG_FILE=storage/logs/app.log
  * Create gitignore
  */
 async function createGitignore(targetDir) {
-  const gitignoreContent = `node_modules/
-.env
-.DS_Store
-*.log
-coverage/
-dist/
-build/
-.vscode/
-.idea/
-*.sqlite
-storage/logs/*
-!storage/logs/.gitkeep
-pnpm-lock.yaml
-package-lock.json
-yarn.lock
-`;
+  const gitignoreContent = await renderTemplate('.gitignore.hbs', {});
   await fs.writeFile(path.join(targetDir, '.gitignore'), gitignoreContent);
 }
 
@@ -445,51 +427,11 @@ yarn.lock
  * Create README
  */
 async function createReadme(projectName, targetDir) {
-  const readmeContent = `# ${projectName}
-
-A Vasuzex application.
-
-## Getting Started
-
-### Install Dependencies
-
-\`\`\`bash
-pnpm install
-\`\`\`
-
-### Database Setup
-
-\`\`\`bash
-# Create database (if needed)
-createdb ${projectName.replace(/-/g, '_')}
-
-# Run migrations
-pnpm db:migrate
-
-# Seed database
-pnpm db:seed
-\`\`\`
-
-### Development
-
-\`\`\`bash
-pnpm dev
-\`\`\`
-
-## Available Commands
-
-\`\`\`bash
-pnpm generate:app <name>       # Generate new app
-pnpm make:model <name>         # Create model
-pnpm make:migration <name>     # Create migration
-pnpm db:migrate                # Run migrations
-pnpm db:seed                   # Seed database
-\`\`\`
-
-## Documentation
-
-See [Vasuzex Documentation](${GENERATOR_CONFIG.package.documentationUrl})
-`;
+  const readmeContent = await renderTemplate('README.md.hbs', {
+    projectName,
+    dbName: projectName.replace(/-/g, '_'),
+    documentationUrl: GENERATOR_CONFIG.package.documentationUrl
+  });
   await fs.writeFile(path.join(targetDir, 'README.md'), readmeContent);
 }
 

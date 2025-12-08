@@ -1,5 +1,5 @@
 import Model from 'vasuzex/Database/Model';
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 
 export class User extends Model {
   static tableName = 'users';

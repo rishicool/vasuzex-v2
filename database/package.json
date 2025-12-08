@@ -6,5 +6,8 @@
   "exports": {
     ".": "./index.js",
     "./models/*": "./models/*.js"
+  },
+  "dependencies": {
+    "handlebars": "^4.7.8"
   }
 }

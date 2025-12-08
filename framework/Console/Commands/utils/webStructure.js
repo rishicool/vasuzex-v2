@@ -137,9 +137,11 @@ function generateViteConfig(framework) {
   if (framework === 'react') {
     return `import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
+  cacheDir: path.resolve(__dirname, '../../../node_modules/.vite'),
   server: {
     port: 3001,
   },
@@ -149,9 +151,11 @@ export default defineConfig({
   if (framework === 'vue') {
     return `import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
+import path from 'path';
 
 export default defineConfig({
   plugins: [vue()],
+  cacheDir: path.resolve(__dirname, '../../../node_modules/.vite'),
   server: {
     port: 3001,
   },
@@ -161,9 +165,11 @@ export default defineConfig({
   if (framework === 'svelte') {
     return `import { defineConfig } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
+import path from 'path';
 
 export default defineConfig({
   plugins: [svelte()],
+  cacheDir: path.resolve(__dirname, '../../../node_modules/.vite'),
   server: {
     port: 3001,
   },

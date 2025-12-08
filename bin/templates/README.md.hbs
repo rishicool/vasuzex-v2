@@ -1,0 +1,44 @@
+# {{projectName}}
+
+A Vasuzex application.
+
+## Getting Started
+
+### Install Dependencies
+
+```bash
+pnpm install
+```
+
+### Database Setup
+
+```bash
+# Create database (if needed)
+createdb {{dbName}}
+
+# Run migrations
+pnpm db:migrate
+
+# Seed database
+pnpm db:seed
+```
+
+### Development
+
+```bash
+pnpm dev
+```
+
+## Available Commands
+
+```bash
+pnpm generate:app <name>       # Generate new app
+pnpm make:model <name>         # Create model
+pnpm make:migration <name>     # Create migration
+pnpm db:migrate                # Run migrations
+pnpm db:seed                   # Seed database
+```
+
+## Documentation
+
+See [Vasuzex Documentation]({{documentationUrl}})

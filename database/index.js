@@ -45,9 +45,6 @@ export { DB };
 
 // Export all models (named exports)
 export { User } from './models/User.js';
-export { Post } from './models/Post.js';
-export { Comment } from './models/Comment.js';
-export { Task } from './models/Task.js';
 
 // Default export
 export default DB;

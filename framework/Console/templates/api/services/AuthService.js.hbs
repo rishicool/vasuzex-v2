@@ -3,7 +3,7 @@
  * Business logic for authentication
  */
 
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { User } from '@{{projectName}}/database';
 
@@ -18,22 +18,17 @@ export class AuthService {
       throw new Error('User already exists with this email');
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(data.password, 10);
-
-    // Create user
+    // Create user (password will be hashed by User model's setPasswordAttribute mutator)
     const user = await User.create({
       name: data.name,
       email: data.email,
-      password: hashedPassword,
+      password: data.password, // Pass plain password, model will hash it
     });
 
     // Generate token
     const token = this.generateToken(user);
 
-    // Remove password from response
-    delete user.password;
-
+    // Password already hidden by model
     return {
       user,
       token,
@@ -44,14 +39,14 @@ export class AuthService {
    * Login user
    */
   async login(email, password) {
-    // Find user
+    // Find user by email (User model has findByEmail helper)
     const user = await User.findByEmail(email);
     if (!user) {
       throw new Error('Invalid credentials');
     }
 
-    // Verify password
-    const isValid = await bcrypt.compare(password, user.password);
+    // Verify password using User model's method
+    const isValid = await user.verifyPassword(password);
     if (!isValid) {
       throw new Error('Invalid credentials');
     }
@@ -59,9 +54,7 @@ export class AuthService {
     // Generate token
     const token = this.generateToken(user);
 
-    // Remove password from response
-    delete user.password;
-
+    // Password already hidden by model, no need to delete
     return {
       user,
       token,

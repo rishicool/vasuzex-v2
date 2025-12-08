@@ -1,4 +1,4 @@
-import { Schema } from 'guruorm';
+import { Schema } from 'vasuzex/Database';
 
 export default class CreateUsersTable {
   async up() {
