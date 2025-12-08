@@ -50,6 +50,41 @@ export class Controller {
   unauthorized(res, message = 'Unauthorized') {
     return new Response(res).unauthorized(message);
   }
+
+  /**
+   * Send created response (201)
+   */
+  created(res, data = null, message = 'Created successfully') {
+    return new Response(res).created(data, message);
+  }
+
+  /**
+   * Send bad request response (400)
+   */
+  badRequest(res, message = 'Bad request') {
+    return new Response(res).error(message, 400);
+  }
+
+  /**
+   * Send forbidden response (403)
+   */
+  forbidden(res, message = 'Forbidden') {
+    return new Response(res).forbidden(message);
+  }
+
+  /**
+   * Send server error response (500)
+   */
+  serverError(res, message = 'Internal Server Error') {
+    return new Response(res).serverError(message);
+  }
+
+  /**
+   * Send no content response (204)
+   */
+  noContent(res) {
+    return new Response(res).noContent();
+  }
 }
 
 export default Controller;

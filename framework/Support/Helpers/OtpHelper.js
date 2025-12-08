@@ -193,13 +193,34 @@ export function verifyOTPRecord(otp, record, options = {}) {
 }
 
 /**
- * Check if OTP is expired
+ * Get OTP expiry timestamp
+ * Simple helper for Laravel-style usage
  * 
- * @param {object} record - OTP record
+ * @param {number} expiresInSeconds - Expiry duration in seconds (default: 600 = 10 minutes)
+ * @returns {Date} Expiry timestamp
+ */
+export function getOTPExpiry(expiresInSeconds = 600) {
+  return new Date(Date.now() + expiresInSeconds * 1000);
+}
+
+/**
+ * Check if OTP timestamp is expired
+ * Simple helper for Laravel-style usage
+ * 
+ * @param {Date|string} expiryTimestamp - OTP expiry timestamp
  * @returns {boolean} Expired status
  */
-export function isOTPExpired(record) {
-  return new Date() > new Date(record.expiresAt);
+export function isOTPExpired(expiryTimestamp) {
+  if (!expiryTimestamp) {
+    return true;
+  }
+  
+  // Handle both record objects and direct timestamps
+  const expiryDate = expiryTimestamp.expiresAt 
+    ? new Date(expiryTimestamp.expiresAt)
+    : new Date(expiryTimestamp);
+    
+  return new Date() > expiryDate;
 }
 
 /**

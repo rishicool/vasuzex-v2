@@ -5,6 +5,21 @@ All notable changes to Vasuzex will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.2] - 2025-12-08
+
+### Added
+- **OtpHelper**: Added `getOTPExpiry(expiresInSeconds)` helper function
+  - Simple Laravel-style helper to get OTP expiry timestamp
+  - Default expiry: 600 seconds (10 minutes)
+  - Returns Date object for database storage
+- **OtpHelper**: Enhanced `isOTPExpired(expiryTimestamp)` to accept both timestamps and record objects
+  - Maintains backward compatibility with existing `isOTPExpired(record)` usage
+  - Now accepts direct Date/string timestamps for simpler usage
+  - Handles null/undefined gracefully (returns true)
+
+### Changed
+- OtpHelper now provides more flexible API for common OTP operations
+
 ## [1.0.11] - 2025-12-04
 
 ### Fixed
