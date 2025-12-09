@@ -24,6 +24,7 @@
 
 import { LocalStorageProvider } from './Providers/LocalStorageProvider.js';
 import { S3StorageProvider } from './Providers/S3StorageProvider.js';
+import path from 'path';
 
 export class StorageManager {
   /**
@@ -93,7 +94,12 @@ export class StorageManager {
    * @private
    */
   createLocalDriver(config) {
-    return new LocalStorageProvider(config);
+    // Resolve root path relative to app's rootDir
+    const resolvedConfig = { ...config };
+    if (config.root && !path.isAbsolute(config.root)) {
+      resolvedConfig.root = path.resolve(this.app.rootDir, config.root);
+    }
+    return new LocalStorageProvider(resolvedConfig);
   }
 
   /**

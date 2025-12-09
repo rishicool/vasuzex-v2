@@ -11,7 +11,7 @@ export class MediaServiceProvider extends ServiceProvider {
    * Register the service provider
    */
   register() {
-    this.app.singleton('media', (app) => {
+    this.singleton('media', (app) => {
       return new MediaManager(app);
     });
   }
@@ -21,7 +21,7 @@ export class MediaServiceProvider extends ServiceProvider {
    */
   boot() {
     // Ensure cache directory exists
-    const media = this.app.make('media');
+    const media = this.make('media');
     
     if (!existsSync(media.cacheDir)) {
       mkdirSync(media.cacheDir, { recursive: true });

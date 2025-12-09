@@ -4,7 +4,7 @@
  */
 
 // HTTP utilities
-export { createApiClient } from './Http/index.js';
+export { createApiClient, createApiHelpers } from './Http/index.js';
 
 // Config utilities
 export { loadAppConfig, clearConfigCache } from './Config/index.js';

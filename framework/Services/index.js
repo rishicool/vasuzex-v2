@@ -20,3 +20,4 @@ export * from './Media/index.js';
 export * from './GeoIP/index.js';
 export * from './Location/index.js';
 export * from './Payment/index.js';
+export * from './Security/index.js';

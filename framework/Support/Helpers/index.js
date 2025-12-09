@@ -12,6 +12,7 @@ export * from './OtpHelper.js';
 export * from './DateHelper.js';
 export * from './PaginationHelper.js';
 export * from './DebugHelper.js';
+export * from './utilities.js';
 
 // Default exports
 export { default as ResponseHelper } from './ResponseHelper.js';

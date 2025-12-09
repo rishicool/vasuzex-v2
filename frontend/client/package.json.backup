@@ -1,5 +1,5 @@
 {
-  "name": "vasuzex-client",
+  "name": "@vasuzex/client",
   "version": "2.0.0",
   "description": "Framework-agnostic JavaScript utilities for Vasuzex v2 frontend applications",
   "type": "module",
@@ -14,7 +14,16 @@
     "./Alerts": "./Alerts/index.js",
     "./Errors": "./Errors/index.js"
   },
-  "files": ["index.js", "Http", "Config", "Validation", "Formatters", "Storage", "Alerts", "Errors"],
+  "files": [
+    "index.js",
+    "Http",
+    "Config",
+    "Validation",
+    "Formatters",
+    "Storage",
+    "Alerts",
+    "Errors"
+  ],
   "keywords": ["vasuzex", "frontend", "utilities", "api-client"],
   "author": "Vasuzex Team",
   "license": "MIT",

@@ -8,7 +8,7 @@
 
 import { createContext, useContext, useMemo } from 'react';
 import PropTypes from 'prop-types';
-import { createApiClient } from '@vasuzex/client/Http';
+import { createApiClient } from 'vasuzex/client/Http';
 
 const ApiClientContext = createContext(null);
 

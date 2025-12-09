@@ -7,7 +7,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { handleFormError, getValidationErrors } from '@vasuzex/client/Errors';
+import { handleFormError, getValidationErrors } from 'vasuzex/client/Errors';
 
 /**
  * Hook for managing validation errors

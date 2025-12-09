@@ -19,6 +19,101 @@ export class BaseService {
     this.sortableFields = ['id', 'created_at', 'updated_at'];
     this.defaultPerPage = 15;
     this.maxPerPage = 100;
+    this.request = null; // Will be set from controller
+  }
+
+  /**
+   * Convert camelCase to snake_case for PostgreSQL column names
+   * PostgreSQL convention uses snake_case
+   * @param {string} str - camelCase string
+   * @returns {string} snake_case string
+   */
+  toSnakeCase(str) {
+    return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+  }
+
+  /**
+   * Set request context (call from controller before service methods)
+   * @param {Object} req - Express request object
+   * @returns {this} For chaining
+   */
+  setContext(req) {
+    this.request = req;
+    return this;
+  }
+
+  /**
+   * Get query options from request
+   * Standardizes pagination, search, sort, filters from req.query
+   * @returns {Object} Standardized query options
+   */
+  getQueryOptions() {
+    if (!this.request) {
+      return {};
+    }
+
+    const { query } = this.request;
+    const columnSearch = this.extractColumnSearch(query);
+
+    return {
+      page: parseInt(query.page) || 1,
+      limit: parseInt(query.limit) || 10,
+      search: query.search || '',
+      sortBy: query.sortBy || query.sort_by || 'created_at',
+      sortOrder: query.sortOrder || query.sort_order || 'desc',
+      filters: this.extractFilters(query),
+      columnSearch: columnSearch,
+      relations: query.with ? query.with.split(',') : []
+    };
+  }
+
+  /**
+   * Extract column-specific search from query params
+   * Frontend sends: columnSearch[name]=john&columnSearch[email]=test
+   * Backend receives as: req.query['columnSearch[name]'] = 'john'
+   * This method parses them into: {name: 'john', email: 'test'}
+   * @param {Object} query - Request query params
+   * @returns {Object} Column search object
+   */
+  extractColumnSearch(query) {
+    const columnSearch = {};
+    const columnSearchPattern = /^columnSearch\[(.+)\]$/;
+
+    Object.keys(query).forEach(key => {
+      const match = key.match(columnSearchPattern);
+      if (match && query[key]) {
+        const fieldName = match[1];
+        columnSearch[fieldName] = query[key];
+      }
+    });
+
+    return columnSearch;
+  }
+
+  /**
+   * Extract filters from query params
+   * Override in child services for custom filter extraction
+   * @param {Object} query - Request query params
+   * @returns {Object} Filters object
+   */
+  extractFilters(query) {
+    const filters = {};
+    const excludedKeys = ['page', 'limit', 'search', 'sortBy', 'sort_by', 'sortOrder', 'sort_order', 'with'];
+    const columnSearchPattern = /^columnSearch\[(.+)\]$/;
+
+    Object.keys(query).forEach(key => {
+      // Skip excluded keys and columnSearch params
+      if (excludedKeys.includes(key) || columnSearchPattern.test(key)) {
+        return;
+      }
+
+      const value = query[key];
+      if (value !== undefined && value !== null && value !== '') {
+        filters[key] = value;
+      }
+    });
+
+    return filters;
   }
 
   /**

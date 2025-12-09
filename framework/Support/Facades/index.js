@@ -31,6 +31,7 @@ export { default as Media } from './Media.js';
 export { default as Notification } from './Notification.js';
 export { default as Queue } from './Queue.js';
 export { default as RateLimiter } from './RateLimiter.js';
+export { default as Security } from './Security.js';
 export { default as Session } from './Session.js';
 export { default as SMS } from './SMS.js';
 export { default as Storage } from './Storage.js';

@@ -1,6 +1,6 @@
 {
   "name": "vasuzex",
-  "version": "2.1.2",
+  "version": "2.1.3",
   "description": "Laravel-inspired framework for Node.js monorepos - V2 with optimized dependencies",
   "type": "module",
   "main": "./framework/index.js",
@@ -18,7 +18,9 @@
     "./Support/Facades/*": "./framework/Support/Facades/*.js",
     "./Services/*": "./framework/Services/*/index.js",
     "./client": "./frontend/client/index.js",
-    "./client/*": "./frontend/client/*.js",
+    "./client/*": "./frontend/client/*/index.js",
+    "./react": "./frontend/react-ui/index.js",
+    "./react/*": "./frontend/react-ui/*.js",
     "./package.json": "./package.json"
   },
   "bin": {

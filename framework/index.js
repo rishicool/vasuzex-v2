@@ -14,6 +14,7 @@ export * from './Database/index.js';
 export * from './Validation/index.js';
 export * from './Services/index.js';
 export * from './Support/index.js';
+export * from './Exceptions/index.js';
 
 // Export Facades with aliases
 export {
@@ -38,6 +39,7 @@ export {
   Notification,
   Queue,
   RateLimiter,
+  Security,
   Session,
   SMS,
   Storage,

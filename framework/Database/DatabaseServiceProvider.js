@@ -3,7 +3,7 @@
  * Registers database services and model components
  */
 
-import ServiceProvider from '../Support/ServiceProvider.js';
+import ServiceProvider from '../Foundation/ServiceProvider.js';
 import Model from './Model.js';
 
 export class DatabaseServiceProvider extends ServiceProvider {

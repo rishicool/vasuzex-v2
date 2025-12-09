@@ -8,7 +8,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
-import { loadAppConfig } from '@vasuzex/client/Config';
+import { loadAppConfig } from 'vasuzex/client/Config';
 
 const AppConfigContext = createContext(null);
 

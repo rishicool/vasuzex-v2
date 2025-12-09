@@ -4,3 +4,4 @@
  */
 
 export { createApiClient } from './ApiClient.js';
+export { createApiHelpers } from './ApiHelpers.js';

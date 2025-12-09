@@ -58,9 +58,24 @@ export class Container {
       throw new Error(`No binding found for "${abstract}"`);
     }
 
-    const instance = typeof concrete === 'function' 
-      ? new concrete() 
-      : concrete;
+    // Handle factory functions vs constructors
+    let instance;
+    if (typeof concrete === 'function') {
+      // Check if it's a factory function (arrow function or function that takes app parameter)
+      // Factory functions receive the app instance as parameter
+      const isFactory = concrete.length > 0 || concrete.toString().includes('=>');
+      
+      if (isFactory) {
+        // Call factory function with app instance
+        instance = concrete(this);
+      } else {
+        // Call as constructor
+        instance = new concrete();
+      }
+    } else {
+      // Direct value
+      instance = concrete;
+    }
 
     if (this.singletons.has(key)) {
       this.instances.set(key, instance);

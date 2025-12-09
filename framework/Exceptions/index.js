@@ -20,4 +20,5 @@ export {
   AuthorizationError,
 } from './ErrorTypes.js';
 export { ExceptionHandler, createExceptionHandler } from './Handler.js';
-export { asyncHandler, asyncMiddleware, catchAsync } from './asyncHandler.js';
+// asyncHandler moved to Http module - import from 'vasuzex/Http' instead
+export { asyncMiddleware, catchAsync } from './asyncHandler.js';

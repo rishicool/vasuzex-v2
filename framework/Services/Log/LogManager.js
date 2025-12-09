@@ -156,25 +156,46 @@ export class LogManager {
     return str.charAt(0).toUpperCase() + str.slice(1);
   }
 
+  /**
+   * Filter context based on debug mode
+   * Remove stack trace in production
+   */
+  filterContext(context = {}) {
+    const debugValue = this.app.config('app.debug', false);
+    // Handle string 'false' or 'true' from env
+    const isDebug = debugValue === true || debugValue === 'true';
+    
+    // In debug mode, return full context
+    if (isDebug) {
+      return context;
+    }
+    
+    // In production, remove stack trace
+    const filtered = { ...context };
+    delete filtered.stack;
+    
+    return filtered;
+  }
+
   // Proxy PSR-3 methods to default channel
   emergency(message, context = {}) {
-    return this.channel().emergency(message, context);
+    return this.channel().emergency(message, this.filterContext(context));
   }
 
   alert(message, context = {}) {
-    return this.channel().alert(message, context);
+    return this.channel().alert(message, this.filterContext(context));
   }
 
   critical(message, context = {}) {
-    return this.channel().critical(message, context);
+    return this.channel().critical(message, this.filterContext(context));
   }
 
   error(message, context = {}) {
-    return this.channel().error(message, context);
+    return this.channel().error(message, this.filterContext(context));
   }
 
   warning(message, context = {}) {
-    return this.channel().warning(message, context);
+    return this.channel().warning(message, this.filterContext(context));
   }
 
   notice(message, context = {}) {
