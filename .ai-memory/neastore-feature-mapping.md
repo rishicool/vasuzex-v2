@@ -388,8 +388,191 @@ The only "missing" feature is **StockService**, which is business-specific logic
 
 ---
 
-**Last Updated**: December 9, 2025
+**Last Updated**: December 10, 2025
 **Project**: neastore (Vasuzex V2)
+
+---
+
+## 🔧 VASUZEX-V2 GENERATOR ARCHITECTURE
+
+### Port Assignment Strategy
+**Commit**: `07580d8` - December 10, 2025
+
+#### Auto-Increment Port System
+```javascript
+// framework/Console/config/generator.config.js
+ports: {
+  apiStart: 3000,      // API apps start from 3000 and auto-increment
+  webStart: 4000,      // Web apps start from 4000 and auto-increment  
+  mediaServer: 5000    // Media server is static service (hard-coded)
+}
+```
+
+#### How It Works
+```bash
+# First API app
+vasuzex generate:app blog --type api
+# → apps/blog/api/.env: APP_PORT=3000
+
+# Second API app  
+vasuzex generate:app shop --type api
+# → apps/shop/api/.env: APP_PORT=3001
+
+# Third API app
+vasuzex generate:app admin --type api
+# → apps/admin/api/.env: APP_PORT=3002
+
+# First Web app
+vasuzex generate:app blog --type web
+# → apps/blog/web/.env: APP_PORT=4000
+
+# Second Web app
+vasuzex generate:app shop --type web
+# → apps/shop/web/.env: APP_PORT=4001
+
+# Media server (static service)
+vasuzex generate:media-server
+# → apps/media-server/.env: APP_PORT=5000 (always)
+```
+
+#### Auto-Detection Logic
+```javascript
+// framework/Console/Commands/generate-app.js
+function getNextAvailablePort(type) {
+  // 1. Scans apps/* directory for existing apps
+  // 2. Reads .env files to find used ports
+  // 3. Returns next available port starting from base:
+  //    - API: 3000, 3001, 3002, 3003...
+  //    - Web: 4000, 4001, 4002, 4003...
+}
+```
+
+### Environment Variable Architecture
+
+#### ✅ CORRECT Structure
+```
+project-root/
+  .env                    # Global config (DB, cache, etc.) - NO APP_PORT
+  apps/
+    blog/
+      api/
+        .env              # APP_PORT=3000, APP_URL=http://localhost:3000
+      web/
+        .env              # APP_PORT=4000, APP_URL=http://localhost:4000
+    shop/
+      api/
+        .env              # APP_PORT=3001, APP_URL=http://localhost:3001
+      web/
+        .env              # APP_PORT=4001, APP_URL=http://localhost:4001
+    media-server/
+      .env                # APP_PORT=5000, APP_URL=http://localhost:5000
+```
+
+#### ❌ OLD (WRONG) Structure - FIXED
+```
+project-root/
+  .env                    # ❌ Had APP_PORT=3000 (WRONG - removed!)
+  apps/
+    blog/
+      api/
+        src/
+          config/
+            database.js   # ❌ Per-app database config (WRONG - removed!)
+```
+
+### Database Architecture
+
+#### ✅ CORRECT - Centralized Database
+```
+project-root/
+  database/
+    index.js              # Centralized exports
+    package.json          # @projectName/database workspace package
+    models/
+      User.js
+      Post.js
+    migrations/
+    seeders/
+  
+  apps/
+    blog/
+      api/
+        src/
+          app.js          # import '@projectName/database'
+          controllers/
+            UserController.js  # import { User } from '@projectName/database'
+```
+
+**NO per-app database config files** - All apps import from `@projectName/database`
+
+### Files Modified (Generator Fix)
+```
+✅ bin/create-vasuzex.js
+   - generateEnvFile() - Removed APP_PORT/APP_URL from root .env
+
+✅ framework/Console/config/generator.config.js
+   - Changed ports.api → ports.apiStart (3000)
+   - Changed ports.web → ports.webStart (4000)  
+   - Set ports.mediaServer = 5000 (static)
+
+✅ framework/Console/Commands/generate-app.js
+   - Added getNextAvailablePort() function
+   - Added fs imports (readdirSync, existsSync, readFileSync)
+   - generateAppEnvFile() uses auto-increment logic
+   - Logs: "📌 Assigning port 3001 to shop api"
+
+✅ framework/Console/Commands/generate-media-server.js
+   - Hard-coded port = '5000' (no longer uses config)
+
+✅ framework/Console/Commands/utils/mediaServerTemplates.js
+   - Changed MEDIA_SERVER_PORT → APP_PORT
+   - Added APP_URL to .env template
+
+✅ framework/Console/plopfile.js
+   - Removed database.js generation action
+   - Comment: "Database config removed - now centralized"
+```
+
+### Key Implementation Details
+
+**Port Detection Algorithm**:
+1. Check if `apps/` directory exists
+2. Scan all app folders for `{type}` subdirectories
+3. Read `.env` files and extract `APP_PORT` values
+4. Build Set of used ports
+5. Start from base port (3000 for API, 4000 for Web)
+6. Increment until finding unused port
+
+**Why Media Server is 5000**:
+- Media server is a **static service** (single instance)
+- No need for auto-increment
+- Hard-coded port = predictable and consistent
+- Users can override with `--port` flag if needed
+
+### Testing the Generator
+
+```bash
+# Create new project
+npx vasuzex create test-project
+
+# Generate multiple apps - ports auto-increment
+cd test-project
+npx vasuzex generate:app blog --type api      # Port 3000
+npx vasuzex generate:app shop --type api      # Port 3001  
+npx vasuzex generate:app admin --type api     # Port 3002
+
+npx vasuzex generate:app blog --type web      # Port 4000
+npx vasuzex generate:app shop --type web      # Port 4001
+
+npx vasuzex generate:media-server             # Port 5000 (always)
+```
+
+**Verification Checklist**:
+- ✅ Root `.env` has NO `APP_PORT` or `APP_URL`
+- ✅ Each app has `.env` with correct incremented port
+- ✅ No `apps/*/api/src/config/database.js` files exist
+- ✅ All apps import from `@projectName/database`
+- ✅ Media server always uses port 5000
 
 ---
 
