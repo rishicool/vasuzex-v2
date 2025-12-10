@@ -368,8 +368,6 @@ async function generateEnvFile(projectName, answers, targetDir, spinner) {
   let envContent = `# Application
 APP_NAME=${projectName}
 APP_ENV=development
-APP_PORT=3000
-APP_URL=http://localhost:3000
 
 # Database
 DB_CONNECTION=${answers.database.toLowerCase() === 'postgresql' ? 'postgresql' : answers.database.toLowerCase()}

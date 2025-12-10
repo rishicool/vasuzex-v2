@@ -9,7 +9,7 @@
 export function generateMediaServerConfigTemplate(port) {
   return `module.exports = {
   name: 'media-server',
-  port: process.env.MEDIA_SERVER_PORT || ${port},
+  port: process.env.APP_PORT || ${port},
   env: process.env.NODE_ENV || 'development',
   debug: process.env.NODE_ENV !== 'production',
 };
@@ -21,7 +21,8 @@ export function generateMediaServerConfigTemplate(port) {
  */
 export function generateMediaServerEnvTemplate(port) {
   return `# Media Server Configuration
-MEDIA_SERVER_PORT=${port}
+APP_PORT=${port}
+APP_URL=http://localhost:${port}
 
 # Storage Configuration (uses framework's storage config)
 STORAGE_DRIVER=local

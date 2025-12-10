@@ -4,6 +4,7 @@
  */
 
 import { join } from 'path';
+import { GENERATOR_CONFIG } from '../config/generator.config.js';
 import {
   // File Operations
   getProjectRoot,
@@ -36,7 +37,7 @@ import {
  * Main generate media server function
  */
 export async function generateMediaServer(options) {
-  const port = options.port || '4003';
+  const port = options.port || '5000'; // Media server is static service, hard-coded port
   const targetDir = join(getProjectRoot(), 'apps', 'media-server');
 
   console.log('🖼️  Generating Media Server...\n');

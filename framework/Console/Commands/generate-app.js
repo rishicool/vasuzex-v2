@@ -5,6 +5,8 @@
  */
 
 import { join } from 'path';
+import { readdirSync, existsSync, readFileSync } from 'fs';
+import { GENERATOR_CONFIG } from '../config/generator.config.js';
 import {
   // File Operations
   getAppPath,
@@ -37,6 +39,62 @@ import {
   displayAPINextSteps,
   displayWebNextSteps,
 } from './utils/index.js';
+
+/**
+ * Get next available port for app type by checking existing apps
+ * API apps: start from 3000 and increment (3000, 3001, 3002...)
+ * Web apps: start from 4000 and increment (4000, 4001, 4002...)
+ */
+function getNextAvailablePort(type) {
+  const projectRoot = process.cwd();
+  const appsDir = join(projectRoot, 'apps');
+  
+  // Starting ports based on type
+  const startPort = type === 'api' ? GENERATOR_CONFIG.ports.apiStart : GENERATOR_CONFIG.ports.webStart;
+  
+  // If apps directory doesn't exist, return start port
+  if (!existsSync(appsDir)) {
+    return startPort;
+  }
+  
+  // Get all existing apps and their ports
+  const usedPorts = new Set();
+  
+  try {
+    const appFolders = readdirSync(appsDir, { withFileTypes: true })
+      .filter(dirent => dirent.isDirectory())
+      .map(dirent => dirent.name);
+    
+    // Check each app folder for app type subdirectories
+    for (const appFolder of appFolders) {
+      const appTypePath = join(appsDir, appFolder, type);
+      const envPath = join(appTypePath, '.env');
+      
+      if (existsSync(envPath)) {
+        try {
+          const envContent = readFileSync(envPath, 'utf8');
+          const portMatch = envContent.match(/APP_PORT=(\d+)/);
+          if (portMatch) {
+            usedPorts.add(parseInt(portMatch[1]));
+          }
+        } catch (err) {
+          // Skip if can't read file
+        }
+      }
+    }
+  } catch (err) {
+    // If can't read apps directory, return start port
+    return startPort;
+  }
+  
+  // Find next available port starting from startPort
+  let nextPort = startPort;
+  while (usedPorts.has(nextPort)) {
+    nextPort++;
+  }
+  
+  return nextPort;
+}
 
 /**
  * Main generate app function
@@ -163,8 +221,8 @@ async function generateWebApp(name, targetDir, framework) {
 }
 
 /**
- * Generate common files (package.json, README, .gitignore)
- * NO .env files at app level - all config is centralized at root!
+ * Generate common files (package.json, README, .gitignore, .env)
+ * App-specific .env with APP_PORT/APP_URL based on app type
  */
 async function generateCommonFiles(name, type, targetDir, framework) {
   // package.json
@@ -184,6 +242,32 @@ async function generateCommonFiles(name, type, targetDir, framework) {
     generateGitignoreTemplate()
   );
   
-  // NOTE: NO .env files here!
-  // All configuration is in root .env file (Laravel monorepo style)
+  // App-specific .env file with correct port from GENERATOR_CONFIG
+  await generateAppEnvFile(name, type, targetDir);
+}
+
+/**
+ * Generate app-specific .env file with APP_PORT and APP_URL
+ * Automatically finds next available port for the app type
+ */
+async function generateAppEnvFile(name, type, targetDir) {
+  // Get next available port based on app type (auto-increment)
+  const port = getNextAvailablePort(type);
+  
+  console.log(`📌 Assigning port ${port} to ${name} ${type}`);
+  
+  const envContent = `# ${name.toUpperCase()} ${type.toUpperCase()} Configuration
+APP_PORT=${port}
+APP_URL=http://localhost:${port}
+`;
+  
+  await writeFileContent(
+    join(targetDir, '.env'),
+    envContent
+  );
+  
+  await writeFileContent(
+    join(targetDir, '.env.example'),
+    envContent
+  );
 }

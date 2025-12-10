@@ -19,9 +19,9 @@ export const GENERATOR_CONFIG = {
 
   // Default Ports
   ports: {
-    api: 3000,
-    web: 3001,
-    mediaServer: 4003,
+    apiStart: 3000,      // API apps start from 3000 and auto-increment
+    webStart: 4000,      // Web apps start from 4000 and auto-increment  
+    mediaServer: 5000,   // Media server is static service (hard-coded)
   },
 
   // Database Defaults

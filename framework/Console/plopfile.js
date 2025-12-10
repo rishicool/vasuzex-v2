@@ -113,14 +113,6 @@ export default function (plop) {
         skipIfExists: true
       });
       
-      // Config
-      actions.push({
-        type: 'add',
-        path: `${basePath}/src/config/database.js`,
-        templateFile: 'templates/api/config/database.js.hbs',
-        skipIfExists: true
-      });
-      
       // Main app files
       actions.push({
         type: 'add',
