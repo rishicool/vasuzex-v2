@@ -404,6 +404,11 @@ CACHE_DRIVER=memory
 # Session
 SESSION_DRIVER=memory
 
+# CORS (will be overridden by app-specific .env files)
+CORS_ORIGIN=*
+CORS_METHODS=GET,HEAD,PUT,PATCH,POST,DELETE
+CORS_CREDENTIALS=true
+
 # Logging
 LOG_LEVEL=debug
 LOG_FILE=storage/logs/app.log

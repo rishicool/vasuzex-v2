@@ -135,44 +135,53 @@ export async function generateSvelteApp(targetDir, appName) {
  */
 function generateViteConfig(framework) {
   if (framework === 'react') {
-    return `import { defineConfig } from 'vite';
+    return `import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 
-export default defineConfig({
-  plugins: [react()],
-  cacheDir: path.resolve(__dirname, '../../../node_modules/.vite'),
-  server: {
-    port: 3001,
-  },
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
+  return {
+    plugins: [react()],
+    cacheDir: path.resolve(__dirname, '../../../node_modules/.vite'),
+    server: {
+      port: parseInt(env.APP_PORT) || 4000,
+    },
+  };
 });`;
   }
   
   if (framework === 'vue') {
-    return `import { defineConfig } from 'vite';
+    return `import { defineConfig, loadEnv } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import path from 'path';
 
-export default defineConfig({
-  plugins: [vue()],
-  cacheDir: path.resolve(__dirname, '../../../node_modules/.vite'),
-  server: {
-    port: 3001,
-  },
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
+  return {
+    plugins: [vue()],
+    cacheDir: path.resolve(__dirname, '../../../node_modules/.vite'),
+    server: {
+      port: parseInt(env.APP_PORT) || 4000,
+    },
+  };
 });`;
   }
   
   if (framework === 'svelte') {
-    return `import { defineConfig } from 'vite';
+    return `import { defineConfig, loadEnv } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import path from 'path';
 
-export default defineConfig({
-  plugins: [svelte()],
-  cacheDir: path.resolve(__dirname, '../../../node_modules/.vite'),
-  server: {
-    port: 3001,
-  },
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
+  return {
+    plugins: [svelte()],
+    cacheDir: path.resolve(__dirname, '../../../node_modules/.vite'),
+    server: {
+      port: parseInt(env.APP_PORT) || 4000,
+    },
+  };
 });`;
   }
   

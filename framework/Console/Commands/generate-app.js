@@ -256,10 +256,19 @@ async function generateAppEnvFile(name, type, targetDir) {
   
   console.log(`📌 Assigning port ${port} to ${name} ${type}`);
   
-  const envContent = `# ${name.toUpperCase()} ${type.toUpperCase()} Configuration
+  let envContent = `# ${name.toUpperCase()} ${type.toUpperCase()} Configuration
 APP_PORT=${port}
 APP_URL=http://localhost:${port}
 `;
+  
+  // For API apps, add CORS_ORIGIN pointing to corresponding web app port
+  if (type === 'api') {
+    const webPort = getNextAvailablePort('web');
+    envContent += `
+# CORS Configuration
+CORS_ORIGIN=http://localhost:${webPort}
+`;
+  }
   
   await writeFileContent(
     join(targetDir, '.env'),

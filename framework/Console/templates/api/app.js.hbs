@@ -17,7 +17,7 @@ class {{pascalCase appName}}App extends BaseApp {
   constructor() {
     super({
       serviceName: process.env.APP_NAME || '{{appName}}-api',
-      corsOrigin: env('CORS_ORIGIN', 'http://localhost:3001')
+      corsOrigin: env('CORS_ORIGIN', '*')
     });
     
     // Register service providers
