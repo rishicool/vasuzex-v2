@@ -396,7 +396,7 @@ The only "missing" feature is **StockService**, which is business-specific logic
 ## 🔧 VASUZEX-V2 GENERATOR ARCHITECTURE
 
 ### Port Assignment Strategy
-**Commit**: `07580d8` - December 10, 2025
+**Latest Commit**: `7f8e4ec` - December 10, 2025
 
 #### Auto-Increment Port System
 ```javascript
@@ -412,23 +412,25 @@ ports: {
 ```bash
 # First API app
 vasuzex generate:app blog --type api
-# → apps/blog/api/.env: APP_PORT=3000
+# → apps/blog/api/.env: 
+#    APP_PORT=3000
+#    CORS_ORIGIN=http://localhost:4000 (points to blog web)
 
 # Second API app  
 vasuzex generate:app shop --type api
-# → apps/shop/api/.env: APP_PORT=3001
-
-# Third API app
-vasuzex generate:app admin --type api
-# → apps/admin/api/.env: APP_PORT=3002
+# → apps/shop/api/.env: 
+#    APP_PORT=3001
+#    CORS_ORIGIN=http://localhost:4001 (points to shop web)
 
 # First Web app
 vasuzex generate:app blog --type web
 # → apps/blog/web/.env: APP_PORT=4000
+# → vite.config.js reads APP_PORT from .env (no hard-coded port!)
 
 # Second Web app
 vasuzex generate:app shop --type web
 # → apps/shop/web/.env: APP_PORT=4001
+# → vite.config.js reads APP_PORT from .env
 
 # Media server (static service)
 vasuzex generate:media-server
@@ -452,33 +454,60 @@ function getNextAvailablePort(type) {
 #### ✅ CORRECT Structure
 ```
 project-root/
-  .env                    # Global config (DB, cache, etc.) - NO APP_PORT
+  .env                    # Global config (DB, cache, CORS defaults)
+                         # CORS_ORIGIN=* (fallback)
+  config/
+    cors.cjs             # NEW: CORS configuration file
   apps/
     blog/
       api/
-        .env              # APP_PORT=3000, APP_URL=http://localhost:3000
+        .env              # APP_PORT=3000
+                         # CORS_ORIGIN=http://localhost:4000
       web/
-        .env              # APP_PORT=4000, APP_URL=http://localhost:4000
+        .env              # APP_PORT=4000
+        vite.config.js   # Uses env.APP_PORT (config-driven!)
     shop/
       api/
-        .env              # APP_PORT=3001, APP_URL=http://localhost:3001
+        .env              # APP_PORT=3001
+                         # CORS_ORIGIN=http://localhost:4001
       web/
-        .env              # APP_PORT=4001, APP_URL=http://localhost:4001
+        .env              # APP_PORT=4001
+        vite.config.js   # Uses env.APP_PORT
     media-server/
-      .env                # APP_PORT=5000, APP_URL=http://localhost:5000
+      .env                # APP_PORT=5000
 ```
 
-#### ❌ OLD (WRONG) Structure - FIXED
+#### CORS Configuration (Config-Driven)
+```javascript
+// config/cors.cjs
+module.exports = {
+  origin: env('CORS_ORIGIN', 'http://localhost:4000'),
+  methods: env('CORS_METHODS', 'GET,HEAD,PUT,PATCH,POST,DELETE'),
+  credentials: env('CORS_CREDENTIALS', 'true') === 'true',
+  maxAge: parseInt(env('CORS_MAX_AGE', '3600')),
+  // ... other CORS settings
+};
+
+// API apps automatically get CORS_ORIGIN in .env
+// Points to corresponding web app port (auto-incremented)
 ```
-project-root/
-  .env                    # ❌ Had APP_PORT=3000 (WRONG - removed!)
-  apps/
-    blog/
-      api/
-        src/
-          config/
-            database.js   # ❌ Per-app database config (WRONG - removed!)
+
+#### Vite Configuration (Environment-Driven)
+```javascript
+// Generated vite.config.js (React/Vue/Svelte)
+import { defineConfig, loadEnv } from 'vite';
+
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
+  return {
+    server: {
+      port: parseInt(env.APP_PORT) || 4000,  // Reads from .env!
+    },
+  };
+});
 ```
+
+**NO MORE HARD-CODED PORTS** in vite.config.js!
 
 ### Database Architecture
 
@@ -505,7 +534,33 @@ project-root/
 
 **NO per-app database config files** - All apps import from `@projectName/database`
 
-### Files Modified (Generator Fix)
+### Files Modified (All Generator Fixes)
+
+#### Commit `7f8e4ec` - CORS + Vite Port Fix
+```
+✅ config/cors.cjs (NEW)
+   - Complete CORS configuration file
+   - Environment-driven settings
+
+✅ framework/Console/Commands/utils/webStructure.js
+   - generateViteConfig() for React: Uses loadEnv() + env.APP_PORT
+   - generateViteConfig() for Vue: Uses loadEnv() + env.APP_PORT
+   - generateViteConfig() for Svelte: Uses loadEnv() + env.APP_PORT
+   - Removed hard-coded port: 3001
+
+✅ framework/Console/Commands/generate-app.js
+   - generateAppEnvFile() adds CORS_ORIGIN for API apps
+   - CORS_ORIGIN points to web app port (auto-incremented)
+
+✅ framework/Console/templates/api/app.js.hbs
+   - Changed corsOrigin default from 'http://localhost:3001' to '*'
+   - Uses env('CORS_ORIGIN', '*')
+
+✅ bin/create-vasuzex.js
+   - Added CORS_ORIGIN=*, CORS_METHODS, CORS_CREDENTIALS to root .env
+```
+
+#### Commit `07580d8` - Auto-Increment Ports
 ```
 ✅ bin/create-vasuzex.js
    - generateEnvFile() - Removed APP_PORT/APP_URL from root .env
@@ -543,6 +598,18 @@ project-root/
 5. Start from base port (3000 for API, 4000 for Web)
 6. Increment until finding unused port
 
+**CORS Auto-Configuration**:
+1. When generating API app, call `getNextAvailablePort('web')`
+2. Add `CORS_ORIGIN=http://localhost:{webPort}` to API .env
+3. Each API points to its corresponding web app automatically
+4. Falls back to `*` if web app not found
+
+**Vite Port Reading**:
+1. Uses Vite's `loadEnv(mode, process.cwd(), '')` 
+2. Reads `APP_PORT` from `.env` file
+3. Falls back to 4000 if not found
+4. No more hard-coded `port: 3001`!
+
 **Why Media Server is 5000**:
 - Media server is a **static service** (single instance)
 - No need for auto-increment
@@ -555,24 +622,34 @@ project-root/
 # Create new project
 npx vasuzex create test-project
 
-# Generate multiple apps - ports auto-increment
+# Generate multiple apps - ports + CORS auto-increment
 cd test-project
-npx vasuzex generate:app blog --type api      # Port 3000
-npx vasuzex generate:app shop --type api      # Port 3001  
-npx vasuzex generate:app admin --type api     # Port 3002
+npx vasuzex generate:app blog --type api      
+# Port 3000, CORS_ORIGIN=http://localhost:4000
 
-npx vasuzex generate:app blog --type web      # Port 4000
-npx vasuzex generate:app shop --type web      # Port 4001
+npx vasuzex generate:app shop --type api      
+# Port 3001, CORS_ORIGIN=http://localhost:4001
 
-npx vasuzex generate:media-server             # Port 5000 (always)
+npx vasuzex generate:app blog --type web      
+# Port 4000, vite.config.js reads from .env
+
+npx vasuzex generate:app shop --type web      
+# Port 4001, vite.config.js reads from .env
+
+npx vasuzex generate:media-server             
+# Port 5000 (always)
 ```
 
 **Verification Checklist**:
 - ✅ Root `.env` has NO `APP_PORT` or `APP_URL`
-- ✅ Each app has `.env` with correct incremented port
+- ✅ Root `.env` has CORS defaults (`CORS_ORIGIN=*`)
+- ✅ Each API app `.env` has `CORS_ORIGIN` pointing to web port
+- ✅ Each web app `.env` has `APP_PORT`
+- ✅ Vite config reads `APP_PORT` from `.env` (no hard-coded port)
 - ✅ No `apps/*/api/src/config/database.js` files exist
 - ✅ All apps import from `@projectName/database`
 - ✅ Media server always uses port 5000
+- ✅ `config/cors.cjs` exists with full CORS configuration
 
 ---
 
