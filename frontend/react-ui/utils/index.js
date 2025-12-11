@@ -36,4 +36,11 @@ export { default as validation } from './validation';
 export * from './logger';
 export { default as logger } from './logger';
 
+// HTTP Client (re-export from client package)
+export { createApiClient, createApiHelpers } from '../../client/Http/index.js';
 
+// Config Loader (re-export from client package)
+export { loadAppConfig, clearConfigCache } from '../../client/Config/index.js';
+
+// Error Handlers (re-export from client package)
+export { handleFormError, getValidationErrors } from '../../client/Errors/index.js';

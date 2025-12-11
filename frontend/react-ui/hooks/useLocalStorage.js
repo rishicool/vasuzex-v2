@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { storage } from 'vasuzex/client/Storage';
+import { storage } from '../utils/index.js';
 
 /**
  * Hook to sync state with localStorage

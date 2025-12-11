@@ -8,32 +8,9 @@
 
 import { createContext, useContext, useMemo } from 'react';
 import PropTypes from 'prop-types';
-import axios from 'axios';
+import { createApiClient } from '../utils/index.js';
 
 const ApiClientContext = createContext(null);
-
-/**
- * Create a configured axios instance
- * @param {Object} config - Axios configuration
- * @returns {AxiosInstance} Configured axios instance
- */
-function createApiClient(config) {
-  const instance = axios.create(config);
-  
-  // Add request interceptor for auth token
-  instance.interceptors.request.use(
-    (requestConfig) => {
-      const token = localStorage.getItem('token');
-      if (token) {
-        requestConfig.headers.Authorization = `Bearer ${token}`;
-      }
-      return requestConfig;
-    },
-    (error) => Promise.reject(error)
-  );
-  
-  return instance;
-}
 
 /**
  * Provider component for API client
