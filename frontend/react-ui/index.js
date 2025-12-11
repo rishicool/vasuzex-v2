@@ -17,9 +17,15 @@ export * from './components/ReadMore/index.js';
 export * from './components/OrderTimeline/index.js';
 export * from './components/ImageLightbox/index.js';
 export * from './components/Switch/index.js';
+export * from './components/BreadCrumb/index.js';
+export * from './components/Avatars/index.js';
 
 // Hooks
 export * from './hooks/index.js';
 
 // Providers
 export * from './providers/index.js';
+
+// Utilities
+export * from './utils/index.js';
+

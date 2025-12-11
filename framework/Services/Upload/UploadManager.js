@@ -440,6 +440,185 @@ export class UploadManager {
   }
 
   /**
+   * Get config with DB override support
+   * Checks system_configs table first, then falls back to file config
+   * 
+   * @param {string} key - Config key (e.g., 'document', 'image', 'default')
+   * @returns {Promise<any>} Config value
+   * @private
+   */
+  async getConfigWithDbOverride(key) {
+    try {
+      // Try database first (system_configs or app_configs)
+      const db = this.app.make('db');
+      
+      if (db) {
+        const dbConfig = await db
+          .table('system_configs')
+          .where('key', `upload.${key}`)
+          .first();
+        
+        if (dbConfig && dbConfig.value) {
+          try {
+            return JSON.parse(dbConfig.value);
+          } catch {
+            return dbConfig.value;
+          }
+        }
+      }
+    } catch (error) {
+      // DB not available or error - fall through to file config
+    }
+    
+    // Fallback to file config
+    return this.app.config(`upload.${key}`);
+  }
+
+  /**
+   * Get multer middleware for file uploads
+   * Uses memoryStorage - files stored in memory as Buffer
+   * 
+   * @param {Object} options - Multer options
+   * @param {string} options.configType - Config type ('document', 'image', 'video', 'audio')
+   * @param {number} options.maxSize - Max file size override
+   * @param {Array<string>} options.allowedTypes - Allowed MIME types override
+   * @returns {multer.Multer}
+   * 
+   * @example
+   * // In routes
+   * const uploadMiddleware = (req, res, next) => {
+   *   return Upload.getMulterUpload({ configType: 'document' }).any()(req, res, next);
+   * };
+   */
+  getMulterUpload(options = {}) {
+    const multer = require('multer');
+    
+    // Use memory storage - files as Buffer
+    const storage = multer.memoryStorage();
+    
+    // Get config rules
+    const configType = options.configType || 'validation';
+    const rules = this.app.config(`upload.${configType}`, {});
+    
+    // File filter based on config
+    const fileFilter = (req, file, cb) => {
+      // Check allowed types
+      const allowedTypes = options.allowedTypes || rules.allowedTypes;
+      if (allowedTypes && allowedTypes.length > 0) {
+        if (!allowedTypes.includes(file.mimetype)) {
+          return cb(new Error(`File type ${file.mimetype} not allowed. Allowed: ${allowedTypes.join(', ')}`));
+        }
+      }
+      
+      // Check blocked types
+      if (rules.blockedTypes && rules.blockedTypes.includes(file.mimetype)) {
+        return cb(new Error(`File type ${file.mimetype} is blocked`));
+      }
+      
+      cb(null, true);
+    };
+    
+    return multer({
+      storage,
+      limits: {
+        fileSize: options.maxSize || rules.maxSize || this.app.config('upload.validation.maxSize', 10485760)
+      },
+      fileFilter
+    });
+  }
+
+  /**
+   * Process uploaded file with config type
+   * Reads config from DB (if available), then file config, then defaults
+   * 
+   * @param {Object} file - Multer file object (with buffer from memoryStorage)
+   * @param {string} configType - Config type ('document', 'image', 'video', 'audio')
+   * @param {Object} options - Upload options
+   * @param {string} options.path - Upload path/folder
+   * @param {string} options.filename - Custom filename (optional)
+   * @param {string} options.disk - Disk name (optional, uses default)
+   * @returns {Promise<Object>} Upload result with path, url, size, metadata
+   * 
+   * @example
+   * // In service
+   * const result = await Upload.processUpload(file, 'document', {
+   *   path: 'documents/store/123',
+   *   filename: 'store_license_123_1234567890.pdf'
+   * });
+   */
+  async processUpload(file, configType, options = {}) {
+    // Get validation rules from config (DB first, then file)
+    const rules = await this.getConfigWithDbOverride(configType) || 
+                  this.app.config(`upload.${configType}`, {});
+    
+    // Merge options
+    const uploadOptions = {
+      disk: options.disk || this.getDefaultDisk(),
+      path: options.path,
+      filename: options.filename,
+      validate: rules,
+      scan: options.scan !== false,
+      process: options.process,
+      metadata: options.metadata || {}
+    };
+    
+    // Use existing upload() method
+    return await this.upload(file, uploadOptions);
+  }
+
+  /**
+   * Generate safe filename
+   * Pattern: prefix_entityId_timestamp_random.ext
+   * 
+   * @param {Object} file - File object with originalname
+   * @param {string} prefix - Filename prefix (e.g., 'store_license', 'dp_aadhaar')
+   * @param {string|number} entityId - Entity ID (userId, storeId, etc.)
+   * @returns {string} Safe filename
+   * 
+   * @example
+   * const filename = UploadManager.generateFilename(
+   *   file, 'store_license', 123
+   * );
+   * // Returns: store_license_123_1702234567890_987654321.pdf
+   */
+  static generateFilename(file, prefix, entityId) {
+    const path = require('path');
+    const ext = path.extname(file.originalname).toLowerCase();
+    const timestamp = Date.now();
+    const random = Math.round(Math.random() * 1e9);
+    
+    return `${prefix}_${entityId}_${timestamp}_${random}${ext}`;
+  }
+
+  /**
+   * Shortcut for document upload
+   */
+  async uploadDocument(file, options = {}) {
+    return await this.processUpload(file, 'document', options);
+  }
+
+  /**
+   * Shortcut for image upload
+   */
+  async uploadImage(file, options = {}) {
+    return await this.processUpload(file, 'image', options);
+  }
+
+  /**
+   * Shortcut for video upload
+   */
+  async uploadVideo(file, options = {}) {
+    return await this.processUpload(file, 'video', options);
+  }
+
+  /**
+   * Shortcut for audio upload
+   */
+  async uploadAudio(file, options = {}) {
+    return await this.processUpload(file, 'audio', options);
+  }
+
+  /**
    * Capitalize
    * @private
    */

@@ -1,188 +1,188 @@
+import React from "react";
+import { Link } from "react-router-dom";
+import { Switch } from "../Switch";
+import {
+  applyActionDefaults,
+  createViewClickHandler,
+  createDeleteClickHandler,
+} from "./ActionDefaults.jsx";
+
 /**
- * TableBody Component
+ * TableBody Component - Production Ready
  * 
- * Renders the table body with data rows, actions, and loading/empty states.
+ * Table body with data rows, column rendering, and action buttons
+ * Handles Switch component for status toggle
+ * Auto-configures edit/view/delete actions
  * 
  * @module components/DataTable/TableBody
  */
-
-import PropTypes from 'prop-types';
-
-/**
- * Table body with rows and actions
- * 
- * @param {Object} props
- * @param {Array<Object>} props.data - Data to display
- * @param {Array<Object>} props.columns - Column definitions
- * @param {boolean} props.loading - Loading state
- * @param {Function} props.onEdit - Edit callback
- * @param {Function} props.onDelete - Delete callback
- * @param {Function} props.onView - View callback
- * @param {boolean} props.selectable - Enable selection
- * @param {Set} props.selectedRows - Set of selected row IDs
- * @param {Function} props.onRowSelect - Row selection callback
- * @param {React.ReactNode} props.emptyState - Custom empty state
- */
-export function TableBody({ 
-  data, 
-  columns, 
-  loading, 
-  onEdit, 
-  onDelete, 
-  onView,
-  selectable,
-  selectedRows,
-  onRowSelect,
-  emptyState,
+export function TableBody({
+  api,
+  data,
+  columns,
+  actions,
+  loading,
+  emptyText,
+  onStatusToggle,
+  resourceName,
+  resourceIdField = "id",
+  onRefresh,
 }) {
-  const hasActions = onEdit || onDelete || onView;
-  
   if (loading) {
     return (
-      <tbody className="vasuzex-datatable-body">
-        <tr>
-          <td 
-            colSpan={columns.length + (selectable ? 1 : 0) + (hasActions ? 1 : 0)}
-            className="vasuzex-datatable-loading"
-          >
-            <div className="vasuzex-datatable-loader">
-              <div className="spinner"></div>
-              <span>Loading...</span>
-            </div>
-          </td>
-        </tr>
-      </tbody>
+      <tr>
+        <td colSpan={columns.length + (actions ? 1 : 0)} className="text-center py-8">
+          Loading data...
+        </td>
+      </tr>
     );
   }
   
   if (data.length === 0) {
     return (
-      <tbody className="vasuzex-datatable-body">
-        <tr>
-          <td 
-            colSpan={columns.length + (selectable ? 1 : 0) + (hasActions ? 1 : 0)}
-            className="vasuzex-datatable-empty"
-          >
-            {emptyState || (
-              <div className="vasuzex-datatable-empty-state">
-                <p>No data available</p>
-              </div>
-            )}
-          </td>
-        </tr>
-      </tbody>
+      <tr>
+        <td colSpan={columns.length + (actions ? 1 : 0)} className="text-center py-8">
+          {emptyText || "No data found"}
+        </td>
+      </tr>
     );
   }
   
   return (
-    <tbody className="vasuzex-datatable-body">
-      {data.map((row, rowIndex) => {
-        const rowId = row.id || rowIndex;
-        const isSelected = selectedRows.has(rowId);
-        
-        return (
-          <tr 
-            key={rowId}
-            className={`vasuzex-datatable-row ${isSelected ? 'selected' : ''}`}
-          >
-            {selectable && (
-              <td className="vasuzex-datatable-checkbox-cell">
-                <input
-                  type="checkbox"
-                  checked={isSelected}
-                  onChange={(e) => onRowSelect(rowId, e.target.checked)}
-                  aria-label={`Select row ${rowId}`}
+    <>
+      {data.map((row, idx) => (
+        <tr
+          key={row[resourceIdField] ?? row.id ?? row._id ?? idx}
+          className="border-b border-gray-200 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700"
+        >
+          {/* Render Columns */}
+          {columns.map((col) => (
+            <td key={col.field} className={col.className || "px-6 py-4"}>
+              {col.field === "status" && onStatusToggle ? (
+                <Switch
+                  checked={row.is_active ?? row.isActive ?? row.status === "active"}
+                  onChange={() => onStatusToggle(row)}
+                  className="react-switch-status"
+                  id={`switch-status-${row[resourceIdField] ?? row.id ?? row._id ?? idx}`}
                 />
-              </td>
-            )}
-            
-            {columns.map((column) => (
-              <td 
-                key={column.key}
-                className="vasuzex-datatable-cell"
-                data-label={column.label}
-              >
-                {column.render
-                  ? column.render(row[column.key], row, rowIndex)
-                  : row[column.key]}
-              </td>
-            ))}
-            
-            {hasActions && (
-              <td className="vasuzex-datatable-actions-cell">
-                <div className="vasuzex-datatable-actions">
-                  {onView && (
-                    <button
-                      onClick={() => onView(row)}
-                      className="vasuzex-datatable-action-btn view"
-                      aria-label={`View ${row.id || 'row'}`}
-                      title="View"
-                    >
-                      👁
-                    </button>
-                  )}
-                  {onEdit && (
-                    <button
-                      onClick={() => onEdit(row)}
-                      className="vasuzex-datatable-action-btn edit"
-                      aria-label={`Edit ${row.id || 'row'}`}
-                      title="Edit"
-                    >
-                      ✏️
-                    </button>
-                  )}
-                  {onDelete && (
-                    <button
-                      onClick={() => onDelete(row)}
-                      className="vasuzex-datatable-action-btn delete"
-                      aria-label={`Delete ${row.id || 'row'}`}
-                      title="Delete"
-                    >
-                      🗑
-                    </button>
-                  )}
-                </div>
-              </td>
-            )}
-          </tr>
-        );
-      })}
-    </tbody>
+              ) : col.render ? (
+                col.render(row)
+              ) : (
+                row[col.field]
+              )}
+            </td>
+          ))}
+          
+          {/* Render Actions */}
+          {actions && (
+            <td className="px-6 py-4 text-right">
+              <div className="flex items-center justify-end gap-2">
+                {actions.map((userAction, actionIdx) => {
+                  // Apply defaults based on action name
+                  const action = applyActionDefaults(userAction, resourceName, resourceIdField);
+
+                  // Handle switch action
+                  if (action.type === "button" && action.name === "switch") {
+                    const isActive = row.is_active ?? row.isActive ?? row.status === "active";
+                    return (
+                      <div key={actionIdx} className="flex items-center gap-2">
+                        <Switch
+                          checked={isActive}
+                          onChange={() => onStatusToggle && onStatusToggle(row)}
+                          className="react-switch-status"
+                          id={`switch-action-${row[resourceIdField] ?? row.id ?? row._id ?? idx}`}
+                        />
+                      </div>
+                    );
+                  }
+
+                  // Handle view action with automatic modal dispatch
+                  if (action.type === "button" && action.name === "view") {
+                    const viewAction = action;
+                    if (viewAction.apiUrl && !userAction.onClick) {
+                      viewAction.onClick = createViewClickHandler(
+                        api,
+                        viewAction.apiUrl,
+                        viewAction.modalEvent,
+                        resourceIdField,
+                      );
+                    }
+                  }
+
+                  // Handle delete action with automatic confirmation
+                  if (action.type === "button" && action.name === "delete") {
+                    const deleteAction = action;
+                    if (deleteAction.deleteUrl && !userAction.onClick) {
+                      deleteAction.onClick = createDeleteClickHandler(
+                        api,
+                        deleteAction.deleteUrl,
+                        deleteAction.confirmMessage || "Are you sure you want to delete this item?",
+                        resourceIdField,
+                        {
+                          confirmTitle: deleteAction.confirmTitle,
+                          confirmButtonText: deleteAction.confirmButtonText,
+                          successMessage: deleteAction.successMessage,
+                          onRefresh,
+                        },
+                      );
+                    }
+                  }
+
+                  // Get icon, class, title, and content
+                  const Icon = action.icon;
+                  const className =
+                    typeof action.extraClass === "function"
+                      ? action.extraClass(row)
+                      : action.extraClass || "";
+                  const title =
+                    typeof action.title === "function"
+                      ? action.title(row)
+                      : action.title || action.label || "";
+                  const content = action.renderContent ? (
+                    action.renderContent(row)
+                  ) : Icon ? (
+                    <Icon className="h-5 w-5" />
+                  ) : (
+                    action.label
+                  );
+
+                  // Render link
+                  if (action.type === "link") {
+                    const linkAction = action;
+                    return (
+                      <Link
+                        key={actionIdx}
+                        to={linkAction.getHref ? linkAction.getHref(row) : "#"}
+                        className={className}
+                        title={title}
+                      >
+                        {content}
+                      </Link>
+                    );
+                  }
+
+                  // Render button
+                  if (action.type === "button") {
+                    const buttonAction = action;
+                    return (
+                      <button
+                        key={actionIdx}
+                        onClick={() => buttonAction.onClick && buttonAction.onClick(row)}
+                        className={className}
+                        title={title}
+                      >
+                        {content}
+                      </button>
+                    );
+                  }
+
+                  return null;
+                })}
+              </div>
+            </td>
+          )}
+        </tr>
+      ))}
+    </>
   );
 }
-
-TableBody.propTypes = {
-  /** Data to display */
-  data: PropTypes.arrayOf(PropTypes.object).isRequired,
-  /** Column configuration */
-  columns: PropTypes.arrayOf(
-    PropTypes.shape({
-      key: PropTypes.string.isRequired,
-      label: PropTypes.string.isRequired,
-      render: PropTypes.func,
-    })
-  ).isRequired,
-  /** Show loading state */
-  loading: PropTypes.bool,
-  /** Edit callback */
-  onEdit: PropTypes.func,
-  /** Delete callback */
-  onDelete: PropTypes.func,
-  /** View callback */
-  onView: PropTypes.func,
-  /** Enable row selection */
-  selectable: PropTypes.bool,
-  /** Set of selected row IDs */
-  selectedRows: PropTypes.instanceOf(Set),
-  /** Callback when row is selected */
-  onRowSelect: PropTypes.func,
-  /** Custom empty state */
-  emptyState: PropTypes.node,
-};
-
-TableBody.defaultProps = {
-  loading: false,
-  selectable: false,
-  selectedRows: new Set(),
-  emptyState: null,
-};

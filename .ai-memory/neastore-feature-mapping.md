@@ -1,7 +1,650 @@
-# NEASTORE-JS to VASUZEX-V2 Feature Mapping
-## Complete Feature Comparison & Implementation Guide
+# NEASTORE PROJECT - AI MEMORY
+## Complete Implementation Guide & Architecture Rules
 
 ---
+
+## 🌐 PORT ALLOCATION (STANDARD - MUST FOLLOW)
+
+**Production-Ready Port Scheme**:
+
+| Application | API Port | Web Port | URL |
+|-------------|----------|----------|-----|
+| **Customer** | 3000 | 4000 | API: http://localhost:3000/api<br>Web: http://localhost:4000 |
+| **Business** | 3001 | 4001 | API: http://localhost:3001/api<br>Web: http://localhost:4001 |
+| **Delivery** | 3002 | 4002 | API: http://localhost:3002/api<br>Web: http://localhost:4002 |
+| **Admin** | 3003 | 4003 | API: http://localhost:3003/api<br>Web: http://localhost:4003 |
+| **Media Server** | 5000 | - | http://localhost:5000 |
+
+**Pattern**:
+- APIs: 3000-3003 (Customer → Business → Delivery → Admin)
+- Webs: 4000-4003 (Customer → Business → Delivery → Admin)
+- Media: 5000 (standalone service)
+
+**Environment Variables**:
+```bash
+# Customer API
+APP_PORT=3000
+APP_URL=http://localhost:3000
+
+# Customer Web
+VITE_API_BASE_URL=http://localhost:3000/api
+
+# Media Server
+MEDIA_SERVER_PORT=5000
+MEDIA_URL=http://localhost:5000
+```
+
+---
+
+## 🏗️ ARCHITECTURE PRINCIPLES (CRITICAL - READ FIRST)
+
+### **Golden Rule: Thin Controllers/Routes + Fat Models/Services**
+
+#### ✅ WHAT TO DO:
+1. **Controllers (20-50 lines max)**:
+   - Only validate requests
+   - Call service methods
+   - Format & return responses
+   - ❌ **NO business logic**
+   - ❌ **NO database queries**
+   - ❌ **NO Model.find(), User.where(), etc.**
+   - ❌ **NO file processing logic**
+
+2. **Services (100+ lines OK)**:
+   - ALL business logic here
+   - Database queries via Models
+   - Transaction management
+   - External API calls
+   - Data transformations
+   - File upload processing (via Upload facade)
+   - ✅ **This is where work happens**
+
+3. **Models (Fat Models with Query Scopes)**:
+   - Query scopes (`User.findByPhone()`, `AppConfig.active()`, `AppConfig.publicOnly()`)
+   - Relationships (`hasMany`, `belongsTo`)
+   - Domain methods (`user.isBlocked()`, `config.isActive()`)
+   - Accessors/Mutators
+   - ✅ **Use scopes instead of raw where() clauses**
+
+4. **Routes (1-3 lines each)**:
+   - Just endpoint definitions
+   - Middleware attachment (auth, upload)
+   - Map to controllers
+   - ❌ **NO multer diskStorage configuration**
+   - ❌ **NO file processing**
+   - ✅ **Use Upload.getMulterUpload() from framework**
+
+---
+
+### **File Upload Architecture (FRAMEWORK-LEVEL - CRITICAL)**
+
+#### ✅ CORRECT PATTERN (Using Vasuzex Upload Facade):
+
+**Architecture**: Framework Upload facade → DB/Config-driven → Storage drivers (local/s3)
+
+**Flow**: Routes (Upload.getMulterUpload()) → Controller (pass files) → Service (Upload.processUpload()) → Framework UploadManager → Storage drivers
+
+**1. Routes - Upload Middleware from Framework**:
+```javascript
+// routes/registration.js
+import { Upload } from 'vasuzex';
+
+// Upload middleware - uses framework Upload with memoryStorage
+const uploadMiddleware = (req, res, next) => {
+  const upload = Upload.getMulterUpload({ configType: 'document' });
+  return upload.any()(req, res, next); // Files in memory as Buffer
+};
+
+router.put('/store/step/:stepNumber', uploadMiddleware, controller.updateStoreStep);
+```
+
+**2. Service - Process Upload via Framework**:
+```javascript
+// services/RegistrationService.js
+import { Upload } from 'vasuzex';
+
+export class RegistrationService {
+  async processStoreStepData(step, data, files, userId) {
+    if (step === 4 && files) {
+      const uploadedDocs = {};
+      
+      for (const [fieldName, fileArray] of Object.entries(files)) {
+        const file = fileArray[0];
+        
+        // Generate safe filename
+        const filename = Upload.generateFilename(file, `store_${fieldName}`, userId);
+        
+        // Upload via framework Upload facade
+        const result = await Upload.processUpload(file, 'document', {
+          path: `documents/store/${userId}`,
+          filename
+        });
+        
+        uploadedDocs[fieldName] = {
+          path: result.path,
+          url: result.url,
+          filename: result.filename,
+          ...
+        };
+      }
+      
+      return { metadata: { documents: uploadedDocs } };
+    }
+  }
+}
+```
+
+**3. Framework Upload Methods**:
+```javascript
+// vasuzex-v2/framework/Services/Upload/UploadManager.js
+
+// Get multer middleware
+Upload.getMulterUpload({ configType: 'document' })
+// Returns: multer instance with memoryStorage + config-based validation
+
+// Process upload with config type
+Upload.processUpload(file, 'document', { path, filename, disk })
+// Reads config from: DB (system_configs) → File (config/upload.cjs) → Framework defaults
+
+// Generate safe filename
+Upload.generateFilename(file, 'store_license', userId)
+// Returns: store_license_123_1702234567890_987654321.pdf
+
+// Shortcuts
+Upload.uploadDocument(file, options)
+Upload.uploadImage(file, options)
+Upload.uploadVideo(file, options)
+```
+
+**4. Config Hierarchy (3-Tier)**:
+```javascript
+// 1. Database (PRIMARY) - Runtime config
+system_configs table:
+  upload.document.maxSize = 5242880
+  upload.document.allowedTypes = ["image/jpeg", "application/pdf"]
+  upload.default = "local" or "s3"
+
+// 2. Project Config (OVERRIDE) - neastore/config/upload.cjs
+module.exports = {
+  document: {
+    maxSize: 5 * 1024 * 1024,
+    allowedTypes: ['image/jpeg', 'image/png', 'application/pdf'],
+    disk: 'uploads'
+  }
+};
+
+// 3. Framework Defaults (FALLBACK) - vasuzex-v2/config/upload.cjs
+module.exports = {
+  validation: { maxSize: 10485760, ... },
+  image: { maxSize: 5242880, ... },
+  document: { maxSize: 20971520, ... }
+};
+```
+
+**5. Storage Driver (Config-Driven)**:
+```javascript
+// config/filesystems.cjs
+module.exports = {
+  default: env('FILESYSTEM_DRIVER', 'local'), // Can be overridden by DB
+  disks: {
+    uploads: {
+      driver: 'local',
+      root: 'storage/app/uploads',
+      url: env('APP_URL') + '/uploads'
+    },
+    s3: {
+      driver: 's3',
+      key: env('AWS_ACCESS_KEY_ID'),
+      secret: env('AWS_SECRET_ACCESS_KEY'),
+      bucket: env('AWS_BUCKET')
+    }
+  }
+};
+```
+
+#### ❌ WRONG PATTERNS:
+```javascript
+// ❌ DON'T create custom UploadService per app
+class UploadService { ... } // Use framework Upload instead
+
+// ❌ DON'T configure multer diskStorage in routes
+const storage = multer.diskStorage({ destination: './uploads', ... });
+
+// ❌ DON'T hard-code config values
+maxFileSize: 5 * 1024 * 1024 // Use Upload.processUpload() which reads from DB/config
+
+// ❌ DON'T use hard-coded paths
+fs.writeFileSync('./uploads/file.jpg', buffer); // Use Upload.processUpload()
+```
+
+#### 📋 Key Points:
+1. **Framework-Level**: Upload service in vasuzex-v2/framework, NOT app-level
+2. **DB-Driven Config**: Reads from system_configs table first, then file config
+3. **Multer Integration**: `Upload.getMulterUpload()` returns configured multer instance
+4. **Config Types**: 'document', 'image', 'video', 'audio' with type-specific rules
+5. **Storage Drivers**: Local/S3 switchable via DB config at runtime
+6. **No Custom Services**: Use `Upload.processUpload()` directly in services
+7. **Safe Filenames**: `Upload.generateFilename()` for consistent naming
+
+---
+
+### **Query Scope Usage (MANDATORY)**
+
+#### ❌ BAD - Raw where() clauses:
+```javascript
+// ❌ Don't use raw where clauses
+const configs = await AppConfig
+  .where('is_active', true)
+  .where('is_public', true)
+  .get();
+
+const users = await User
+  .where('status', 'active')
+  .where('is_verified', true)
+  .get();
+```
+
+#### ✅ GOOD - Query Scopes:
+```javascript
+// ✅ Use query scopes in Models
+class AppConfig extends Model {
+  static active() {
+    return this.where('is_active', true);
+  }
+  
+  static inactive() {
+    return this.where('is_active', false);
+  }
+  
+  static publicOnly() {
+    return this.where('is_public', true);
+  }
+  
+  static privateOnly() {
+    return this.where('is_public', false);
+  }
+  
+  static forEnvironment(env) {
+    return this.where(function() {
+      this.where('environment', env).orWhere('environment', 'all');
+    });
+  }
+}
+
+// ✅ Then use in Services
+const configs = await AppConfig
+  .active()
+  .publicOnly()
+  .forEnvironment('production')
+  .get();
+```
+
+**Benefits**:
+- Reusable query logic
+- Cleaner code
+- Easier testing
+- Consistent behavior
+- Self-documenting
+
+---
+
+### **Frontend Config Management (API-Driven)**
+
+#### ✅ MANDATORY Pattern for All Web Apps:
+
+1. **On App Load** - Fetch configs from backend:
+```javascript
+// Next.js, React, Vue - All web apps must do this
+async function initializeApp() {
+  // Fetch backend configs on app load
+  const response = await fetch('/api/config/app-settings');
+  const configs = await response.json();
+  
+  // Store in localStorage for offline access
+  localStorage.setItem('app_config', JSON.stringify(configs.data));
+  
+  // Set in global state (Redux/Zustand/Context)
+  store.dispatch(setAppConfig(configs.data));
+}
+```
+
+2. **Use Config from localStorage** - Not hardcoded:
+```javascript
+// ❌ BAD - Hardcoded config
+const GOOGLE_MAPS_KEY = 'AIzaSyABC123...';
+const API_URL = 'http://localhost:3000';
+
+// ✅ GOOD - API-driven config
+const getConfig = (key, defaultValue = null) => {
+  const configs = JSON.parse(localStorage.getItem('app_config') || '{}');
+  return configs[key] || defaultValue;
+};
+
+const googleMapsKey = getConfig('googleMapsKey');
+const apiUrl = getConfig('apiUrl');
+const mediaUrl = getConfig('mediaUrl');
+```
+
+3. **Backend Returns Public Configs**:
+```javascript
+// ConfigService.js (Backend)
+async getPublicAppSettings() {
+  return {
+    apiUrl: process.env.APP_URL,
+    mediaUrl: process.env.MEDIA_URL,
+    googleMapsKey: dbConfig('integrations.googleMapsKey'),
+    features: {
+      enablePayments: dbConfig('features.enablePayments'),
+      enableDelivery: dbConfig('features.enableDelivery'),
+    },
+    branding: {
+      appName: dbConfig('branding.appName'),
+      logo: dbConfig('branding.logo'),
+    },
+    // Payment keys (public keys only)
+    phonepe: {
+      merchantId: dbConfig('phonepe.merchantId'),
+    },
+    razorpay: {
+      keyId: dbConfig('razorpay.keyId'),
+    },
+  };
+}
+```
+
+4. **Web Apps Pattern**:
+```
+┌─────────────────────────────────────────────────┐
+│  Web App Initialization                         │
+│  1. App loads                                   │
+│  2. Fetch /api/config/app-settings              │
+│  3. Store in localStorage                       │
+│  4. Set in global state                         │
+│  5. Use throughout app                          │
+└─────────────────────────────────────────────────┘
+```
+
+**Benefits**:
+- ✅ No hardcoded API keys in frontend
+- ✅ Change config without redeploying web
+- ✅ Environment-specific configs from backend
+- ✅ Works offline (localStorage cache)
+- ✅ Single source of truth (database)
+
+---
+
+#### ❌ NEVER DO:
+```javascript
+// ❌ BAD - Controller with queries
+async getUser(req, res) {
+  const user = await User.where('id', req.params.id).first(); // ❌ NO!
+  return res.json(user);
+}
+
+// ❌ BAD - Route with business logic
+router.get('/users/:id', async (req, res) => {
+  const user = await User.find(req.params.id); // ❌ NO!
+  if (user.status === 'blocked') return res.status(403); // ❌ NO!
+  res.json(user);
+});
+
+// ❌ BAD - Middleware with data loading
+async checkUser(req, res, next) {
+  const user = await User.find(req.userId); // ❌ NO!
+  req.user = user;
+  next();
+}
+
+// ❌ BAD - Raw where clauses instead of scopes
+const configs = await AppConfig
+  .where('is_active', true)
+  .where('is_public', true)
+  .get();
+
+// ❌ BAD - Hardcoded config in frontend
+const GOOGLE_MAPS_KEY = 'AIzaSyABC123...';
+```
+
+#### ✅ ALWAYS DO:
+```javascript
+// ✅ GOOD - Thin Controller
+async getUser(req, res) {
+  const user = await this.userService.getUserById(req.params.id);
+  return res.json(user);
+}
+
+// ✅ GOOD - Fat Service
+class UserService {
+  async getUserById(id) {
+    const user = await User.findOrFail(id);
+    if (user.isBlocked()) {
+      throw new Error('User blocked');
+    }
+    return this.formatUserData(user);
+  }
+}
+
+// ✅ GOOD - Route
+router.get('/users/:id', (req, res) => userController.getUser(req, res));
+
+// ✅ GOOD - Query Scopes
+const configs = await AppConfig.active().publicOnly().forEnvironment('production').get();
+
+// ✅ GOOD - API-driven frontend config
+const googleMapsKey = getConfig('googleMapsKey');
+```
+
+---
+
+## 🎯 MIGRATION PROGRESS
+
+### ✅ Customer API (13 Modules - COMPLETED):
+1. **Auth Module** - OTP/JWT, thin controller, fat service
+2. **Config Module** - Database-driven, API-driven frontend
+3. **Map Module** - Google Maps, GeocodeService, PlaceAutocompleteService
+4. **Contact Module** - Contact form, email notifications
+5. **Order Modification Module** - Cancel order, change delivery time
+6. **Payment Module** - PhonePe integration, payment processing
+7. **Store Module** - Store listing, search, details
+8. **Product Module** - Product listing, search, details, categories
+9. **Cart Module** - Add to cart, update quantity, remove, clear
+10. **Order Module** - Create order, list orders, order details
+11. **User Module** - Profile, addresses CRUD, notification preferences
+12. **Coupon Module** - Coupon validation, apply coupon
+13. **Registration Module** - Store registration, delivery partner registration
+    - Uses framework Upload facade
+    - DB-driven upload config
+    - Multi-step registration with file uploads
+
+### 🚧 Customer Web (STARTED):
+
+**Status**: Base structure + config loading + home page DONE
+
+**Completed**:
+- [x] **Base Structure**: Vite + React + React Router + Redux Toolkit
+- [x] **API-Driven Config**: AppConfigProvider + config-loader.js
+  - Fetches from `/api/config/app-settings` on app load
+  - Caches in localStorage (24hr expiry)
+  - NO hardcoded env vars (apiUrl, mediaUrl, googleMapsKey from backend)
+  - `useAppConfig()` hook for components
+- [x] **Redux Store**: Auth + Cart slices with Redux Persist
+- [x] **Layouts**: MainLayout (header + footer + nav)
+- [x] **Home Page**: LandingPage.jsx (Hero, Features, CTA)
+- [x] **Routing**: React Router with base routes
+- [x] **Documentation**: README.md with API-driven config pattern
+
+**Pending**:
+- [ ] Shops page (list stores, filters, search)
+- [ ] Store details page (products, info, reviews)
+- [ ] Product details page (images, info, add to cart)
+- [ ] Cart page (items, quantity, checkout)
+- [ ] Checkout page (address, payment, place order)
+- [ ] Orders page (order history, filters)
+- [ ] Order details page (items, status, tracking)
+- [ ] Profile page (edit profile, avatar upload)
+- [ ] Addresses page (CRUD addresses, set default)
+- [ ] Settings page (notification preferences)
+
+**Architecture**:
+```
+neastore/apps/customer/web/
+├── src/
+│   ├── lib/
+│   │   ├── config-loader.js      # Fetches from /api/config/app-settings
+│   │   └── AppConfigProvider.jsx # React context + useAppConfig() hook
+│   ├── redux-store/
+│   │   ├── index.js              # Redux store with persist
+│   │   └── slices/
+│   │       ├── auth.slice.js     # User auth state
+│   │       └── cart.slice.js     # Cart state
+│   ├── layouts/
+│   │   └── MainLayout.jsx        # Header + Footer
+│   ├── pages/
+│   │   └── outer/
+│   │       └── LandingPage.jsx   # Home page ✅
+│   ├── components/
+│   │   └── common/
+│   │       └── ScrollToTop.jsx   # Route change scroll
+│   ├── App.jsx                   # Router + Routes
+│   └── main.jsx                  # Entry (Provider + AppConfigProvider)
+├── package.json
+├── vite.config.js
+├── .env.example                  # Only VITE_API_BASE_URL
+└── README.md                     # API-driven config docs
+```
+
+**Key Pattern - API-Driven Config**:
+```jsx
+// ❌ OLD (neastore-js) - Hardcoded
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const MEDIA_SERVER_URL = import.meta.env.VITE_MEDIA_SERVER_URL;
+const GOOGLE_MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY;
+
+// ✅ NEW (neastore) - API-driven
+const { config } = useAppConfig();
+const apiUrl = config.apiUrl;
+const mediaUrl = config.mediaUrl;
+const googleMapsKey = config.googleMapsKey;
+```
+
+**Benefits**:
+- ✅ Change API keys without code deploy
+- ✅ Feature flags controlled from backend
+- ✅ A/B testing support (different configs per user)
+- ✅ Graceful degradation (uses cached config if API fails)
+- ✅ 24hr cache with background refresh
+
+---
+
+### 📋 Pending Modules:
+
+**Backend (Future)**:
+- Admin API (store management, orders, analytics)
+- Business API (store owner dashboard)
+- Delivery Partner API (accept orders, update status)
+
+**Frontend (Future)**:
+- Admin Web (store approval, analytics, support)
+- Business Web (store dashboard, inventory, orders)
+- Delivery Partner Web (order list, navigation, earnings)
+
+---
+
+## 📦 PACKAGE STRUCTURE COMPARISON
+
+### neastore-js/packages Structure:
+```
+packages/
+├── config/          - Centralized config management
+├── database/        - Database models and migrations
+├── ui/              - UI components (React/TypeScript)
+├── utils/           - Shared utilities
+└── web-utils/       - Web-specific utilities
+```
+
+### vasuzex-v2/framework Structure:
+```
+framework/
+├── Foundation/      - Application bootstrap
+├── Services/        - All service providers
+├── Database/        - ORM and migrations
+├── Http/            - HTTP handling
+├── Support/         - Facades and helpers
+└── [20+ modules]
+```
+
+---
+
+## 🎯 FEATURE MAPPING (neastore-js → vasuzex-v2)
+
+### 1. STORAGE & UPLOAD SERVICES
+
+#### neastore-js:
+```javascript
+// packages/utils/src/upload/
+- storage.service.js         → StorageService class
+- upload-service.js           → Upload handling
+- file-security.service.js    → Security scanning
+- filename-generator.js       → Filename generation
+- image-processor.js          → Image processing
+- url-transformer.js          → URL transformation
+
+// packages/utils/src/storage/
+- base-storage.provider.js    → Base provider
+- local-storage.provider.js   → Local storage
+- s3-storage.provider.js      → S3/MinIO storage
+- response-transformer.js     → Transform storage URLs
+- storage-url-builder.js      → Build storage URLs
+```
+
+#### vasuzex-v2 EQUIVALENT:
+```javascript
+// framework/Services/Storage/
+✅ StorageManager.js          → Multi-disk storage manager
+✅ Providers/
+   ✅ BaseStorageProvider.js
+   ✅ LocalStorageProvider.js
+   ✅ S3StorageProvider.js
+
+// framework/Services/Upload/
+✅ UploadManager.js           → File upload manager
+✅ FileValidator.js           → Validation
+✅ SecurityScanner.js         → Security scanning
+✅ ImageProcessor.js          → Image processing
+✅ Drivers/
+   ✅ LocalDriver.js
+   ✅ S3Driver.js
+```
+
+**STATUS**: ✅ **FULLY AVAILABLE** - Vasuzex has complete storage/upload features
+
+---
+
+### 2. IMAGE & THUMBNAIL SERVICES
+
+#### neastore-js:
+```javascript
+// packages/utils/src/image/
+- thumbnail.service.js        → ThumbnailService class
+  - getThumbnail()            → Get/generate thumbnail
+  - generateThumbnail()       → Sharp processing
+  - isValidSize()             → Size validation
+  - getAllowedSizes()         → Size list
+  - getCacheStats()           → Cache statistics
+  - clearImageCache()         → Clear specific image
+
+// packages/utils/src/cache/
+- thumbnail-cache.js          → ThumbnailCache class
+  - get()                     → Get from cache
+  - set()                     → Store in cache
+  - getCacheKey()             → MD5 hash key
+  - clearExpired()            → Remove expired
+  - clearAll()                → Clear all cache
+  - getStats()                → Cache statistics
+```
+
+#### vasuzex-v2 EQUIVALENT:
+```javascript
 
 ## 📦 PACKAGE STRUCTURE COMPARISON
 
@@ -388,268 +1031,8 @@ The only "missing" feature is **StockService**, which is business-specific logic
 
 ---
 
-**Last Updated**: December 10, 2025
+**Last Updated**: December 9, 2025
 **Project**: neastore (Vasuzex V2)
-
----
-
-## 🔧 VASUZEX-V2 GENERATOR ARCHITECTURE
-
-### Port Assignment Strategy
-**Latest Commit**: `7f8e4ec` - December 10, 2025
-
-#### Auto-Increment Port System
-```javascript
-// framework/Console/config/generator.config.js
-ports: {
-  apiStart: 3000,      // API apps start from 3000 and auto-increment
-  webStart: 4000,      // Web apps start from 4000 and auto-increment  
-  mediaServer: 5000    // Media server is static service (hard-coded)
-}
-```
-
-#### How It Works
-```bash
-# First API app
-vasuzex generate:app blog --type api
-# → apps/blog/api/.env: 
-#    APP_PORT=3000
-#    CORS_ORIGIN=http://localhost:4000 (points to blog web)
-
-# Second API app  
-vasuzex generate:app shop --type api
-# → apps/shop/api/.env: 
-#    APP_PORT=3001
-#    CORS_ORIGIN=http://localhost:4001 (points to shop web)
-
-# First Web app
-vasuzex generate:app blog --type web
-# → apps/blog/web/.env: APP_PORT=4000
-# → vite.config.js reads APP_PORT from .env (no hard-coded port!)
-
-# Second Web app
-vasuzex generate:app shop --type web
-# → apps/shop/web/.env: APP_PORT=4001
-# → vite.config.js reads APP_PORT from .env
-
-# Media server (static service)
-vasuzex generate:media-server
-# → apps/media-server/.env: APP_PORT=5000 (always)
-```
-
-#### Auto-Detection Logic
-```javascript
-// framework/Console/Commands/generate-app.js
-function getNextAvailablePort(type) {
-  // 1. Scans apps/* directory for existing apps
-  // 2. Reads .env files to find used ports
-  // 3. Returns next available port starting from base:
-  //    - API: 3000, 3001, 3002, 3003...
-  //    - Web: 4000, 4001, 4002, 4003...
-}
-```
-
-### Environment Variable Architecture
-
-#### ✅ CORRECT Structure
-```
-project-root/
-  .env                    # Global config (DB, cache, CORS defaults)
-                         # CORS_ORIGIN=* (fallback)
-  config/
-    cors.cjs             # NEW: CORS configuration file
-  apps/
-    blog/
-      api/
-        .env              # APP_PORT=3000
-                         # CORS_ORIGIN=http://localhost:4000
-      web/
-        .env              # APP_PORT=4000
-        vite.config.js   # Uses env.APP_PORT (config-driven!)
-    shop/
-      api/
-        .env              # APP_PORT=3001
-                         # CORS_ORIGIN=http://localhost:4001
-      web/
-        .env              # APP_PORT=4001
-        vite.config.js   # Uses env.APP_PORT
-    media-server/
-      .env                # APP_PORT=5000
-```
-
-#### CORS Configuration (Config-Driven)
-```javascript
-// config/cors.cjs
-module.exports = {
-  origin: env('CORS_ORIGIN', 'http://localhost:4000'),
-  methods: env('CORS_METHODS', 'GET,HEAD,PUT,PATCH,POST,DELETE'),
-  credentials: env('CORS_CREDENTIALS', 'true') === 'true',
-  maxAge: parseInt(env('CORS_MAX_AGE', '3600')),
-  // ... other CORS settings
-};
-
-// API apps automatically get CORS_ORIGIN in .env
-// Points to corresponding web app port (auto-incremented)
-```
-
-#### Vite Configuration (Environment-Driven)
-```javascript
-// Generated vite.config.js (React/Vue/Svelte)
-import { defineConfig, loadEnv } from 'vite';
-
-export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), '');
-  return {
-    server: {
-      port: parseInt(env.APP_PORT) || 4000,  // Reads from .env!
-    },
-  };
-});
-```
-
-**NO MORE HARD-CODED PORTS** in vite.config.js!
-
-### Database Architecture
-
-#### ✅ CORRECT - Centralized Database
-```
-project-root/
-  database/
-    index.js              # Centralized exports
-    package.json          # @projectName/database workspace package
-    models/
-      User.js
-      Post.js
-    migrations/
-    seeders/
-  
-  apps/
-    blog/
-      api/
-        src/
-          app.js          # import '@projectName/database'
-          controllers/
-            UserController.js  # import { User } from '@projectName/database'
-```
-
-**NO per-app database config files** - All apps import from `@projectName/database`
-
-### Files Modified (All Generator Fixes)
-
-#### Commit `7f8e4ec` - CORS + Vite Port Fix
-```
-✅ config/cors.cjs (NEW)
-   - Complete CORS configuration file
-   - Environment-driven settings
-
-✅ framework/Console/Commands/utils/webStructure.js
-   - generateViteConfig() for React: Uses loadEnv() + env.APP_PORT
-   - generateViteConfig() for Vue: Uses loadEnv() + env.APP_PORT
-   - generateViteConfig() for Svelte: Uses loadEnv() + env.APP_PORT
-   - Removed hard-coded port: 3001
-
-✅ framework/Console/Commands/generate-app.js
-   - generateAppEnvFile() adds CORS_ORIGIN for API apps
-   - CORS_ORIGIN points to web app port (auto-incremented)
-
-✅ framework/Console/templates/api/app.js.hbs
-   - Changed corsOrigin default from 'http://localhost:3001' to '*'
-   - Uses env('CORS_ORIGIN', '*')
-
-✅ bin/create-vasuzex.js
-   - Added CORS_ORIGIN=*, CORS_METHODS, CORS_CREDENTIALS to root .env
-```
-
-#### Commit `07580d8` - Auto-Increment Ports
-```
-✅ bin/create-vasuzex.js
-   - generateEnvFile() - Removed APP_PORT/APP_URL from root .env
-
-✅ framework/Console/config/generator.config.js
-   - Changed ports.api → ports.apiStart (3000)
-   - Changed ports.web → ports.webStart (4000)  
-   - Set ports.mediaServer = 5000 (static)
-
-✅ framework/Console/Commands/generate-app.js
-   - Added getNextAvailablePort() function
-   - Added fs imports (readdirSync, existsSync, readFileSync)
-   - generateAppEnvFile() uses auto-increment logic
-   - Logs: "📌 Assigning port 3001 to shop api"
-
-✅ framework/Console/Commands/generate-media-server.js
-   - Hard-coded port = '5000' (no longer uses config)
-
-✅ framework/Console/Commands/utils/mediaServerTemplates.js
-   - Changed MEDIA_SERVER_PORT → APP_PORT
-   - Added APP_URL to .env template
-
-✅ framework/Console/plopfile.js
-   - Removed database.js generation action
-   - Comment: "Database config removed - now centralized"
-```
-
-### Key Implementation Details
-
-**Port Detection Algorithm**:
-1. Check if `apps/` directory exists
-2. Scan all app folders for `{type}` subdirectories
-3. Read `.env` files and extract `APP_PORT` values
-4. Build Set of used ports
-5. Start from base port (3000 for API, 4000 for Web)
-6. Increment until finding unused port
-
-**CORS Auto-Configuration**:
-1. When generating API app, call `getNextAvailablePort('web')`
-2. Add `CORS_ORIGIN=http://localhost:{webPort}` to API .env
-3. Each API points to its corresponding web app automatically
-4. Falls back to `*` if web app not found
-
-**Vite Port Reading**:
-1. Uses Vite's `loadEnv(mode, process.cwd(), '')` 
-2. Reads `APP_PORT` from `.env` file
-3. Falls back to 4000 if not found
-4. No more hard-coded `port: 3001`!
-
-**Why Media Server is 5000**:
-- Media server is a **static service** (single instance)
-- No need for auto-increment
-- Hard-coded port = predictable and consistent
-- Users can override with `--port` flag if needed
-
-### Testing the Generator
-
-```bash
-# Create new project
-npx vasuzex create test-project
-
-# Generate multiple apps - ports + CORS auto-increment
-cd test-project
-npx vasuzex generate:app blog --type api      
-# Port 3000, CORS_ORIGIN=http://localhost:4000
-
-npx vasuzex generate:app shop --type api      
-# Port 3001, CORS_ORIGIN=http://localhost:4001
-
-npx vasuzex generate:app blog --type web      
-# Port 4000, vite.config.js reads from .env
-
-npx vasuzex generate:app shop --type web      
-# Port 4001, vite.config.js reads from .env
-
-npx vasuzex generate:media-server             
-# Port 5000 (always)
-```
-
-**Verification Checklist**:
-- ✅ Root `.env` has NO `APP_PORT` or `APP_URL`
-- ✅ Root `.env` has CORS defaults (`CORS_ORIGIN=*`)
-- ✅ Each API app `.env` has `CORS_ORIGIN` pointing to web port
-- ✅ Each web app `.env` has `APP_PORT`
-- ✅ Vite config reads `APP_PORT` from `.env` (no hard-coded port)
-- ✅ No `apps/*/api/src/config/database.js` files exist
-- ✅ All apps import from `@projectName/database`
-- ✅ Media server always uses port 5000
-- ✅ `config/cors.cjs` exists with full CORS configuration
 
 ---
 

@@ -1,6 +1,10 @@
 import express from 'express';
 import { Application } from './Application.js';
 import { applySecurityMiddleware } from '../Http/Middleware/SecurityMiddleware.js';
+import { LogServiceProvider } from '../Services/Log/LogServiceProvider.js';
+import { HashServiceProvider } from './Providers/HashServiceProvider.js';
+import { ValidationServiceProvider } from './Providers/ValidationServiceProvider.js';
+import { EncryptionServiceProvider } from './Providers/EncryptionServiceProvider.js';
 
 /**
  * BaseApp - Base class for application-level apps (Express apps)
@@ -19,6 +23,21 @@ export class BaseApp extends Application {
     this.middlewareSetup = false;
     this.routesSetup = false;
     this.securitySetup = false;
+    
+    // Register core service providers automatically
+    this.registerCoreServiceProviders();
+  }
+  
+  /**
+   * Register core framework service providers
+   * These are registered automatically for all apps
+   */
+  registerCoreServiceProviders() {
+    // Core services that every app needs
+    this.register(LogServiceProvider);
+    this.register(HashServiceProvider);
+    this.register(ValidationServiceProvider);
+    this.register(EncryptionServiceProvider);
   }
 
   /**

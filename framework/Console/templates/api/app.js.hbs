@@ -14,10 +14,11 @@ import { getAllRoutes } from './routes/index.js';
  * Organized and maintainable Express app configuration
  */
 class {{pascalCase appName}}App extends BaseApp {
-  constructor() {
+  constructor(projectRoot) {
     super({
       serviceName: process.env.APP_NAME || '{{appName}}-api',
-      corsOrigin: env('CORS_ORIGIN', '*')
+      corsOrigin: env('CORS_ORIGIN', '*'),
+      projectRoot: projectRoot
     });
     
     // Register service providers
@@ -65,7 +66,7 @@ class {{pascalCase appName}}App extends BaseApp {
 /**
  * Create and configure the Express app
  */
-export function createApp() {
-  const app = new {{pascalCase appName}}App();
+export function createApp(projectRoot) {
+  const app = new {{pascalCase appName}}App(projectRoot);
   return app;
 }

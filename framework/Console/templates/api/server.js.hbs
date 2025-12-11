@@ -9,9 +9,15 @@ import { createApp as buildApp } from './app.js';
 
 // Import centralized database (triggers connection automatically)
 import '@{{projectName}}/database';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Get monorepo root (3 levels up from apps/{{appName}}/api)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const projectRoot = path.resolve(__dirname, '..', '..', '..', '..');
 
 // Load root .env file
-const projectRoot = process.cwd();
 dotenv.config({ path: `${projectRoot}/.env` });
 
 /**
@@ -59,7 +65,7 @@ class {{pascalCase appName}}Server extends BaseServer {
    * Create Express app
    */
   createApp() {
-    return buildApp();
+    return buildApp(this.projectRoot);
   }
 
   /**

@@ -25,17 +25,22 @@ export class LogServiceProvider extends ServiceProvider {
    * Bootstrap the service
    */
   async boot() {
-    // Initialize default log channel
-    if (this.config('logging.default')) {
-      const log = this.make('log');
-      const defaultChannel = this.config('logging.default', 'console');
-      
-      // Pre-create default channel to verify configuration
-      try {
-        log.driver(defaultChannel);
-      } catch (error) {
-        console.error(`[LogServiceProvider] Failed to initialize log channel [${defaultChannel}]:`, error.message);
+    // Initialize default log channel only if config is loaded
+    try {
+      const defaultChannel = this.config('logging.default');
+      if (defaultChannel) {
+        const log = this.make('log');
+        
+        // Pre-create default channel to verify configuration
+        try {
+          log.driver(defaultChannel);
+        } catch (error) {
+          console.error(`[LogServiceProvider] Failed to initialize log channel [${defaultChannel}]:`, error.message);
+        }
       }
+    } catch (error) {
+      // Config might not be loaded yet - skip initialization
+      // This is fine, log will be initialized on first use
     }
   }
 }

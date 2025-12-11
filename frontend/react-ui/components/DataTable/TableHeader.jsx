@@ -1,117 +1,114 @@
+import React from "react";
+
 /**
- * TableHeader Component
+ * TableHeader Component - Production Ready
  * 
- * Renders the table header with sortable columns and optional selection checkbox.
+ * Table header with sortable columns and column-level search inputs
  * 
  * @module components/DataTable/TableHeader
  */
-
-import PropTypes from 'prop-types';
-
-/**
- * Table header with sorting and selection
- * 
- * @param {Object} props
- * @param {Array<Object>} props.columns - Column definitions
- * @param {Object} props.sortConfig - Current sort configuration
- * @param {Function} props.onSort - Sort callback
- * @param {boolean} props.selectable - Enable selection checkbox
- * @param {boolean} props.allSelected - All rows selected state
- * @param {Function} props.onSelectAll - Select all callback
- */
-export function TableHeader({ 
-  columns, 
-  sortConfig, 
-  onSort, 
-  selectable, 
-  allSelected, 
-  onSelectAll 
+export function TableHeader({
+  columns,
+  actions,
+  sortBy,
+  sortOrder,
+  handleSort,
+  columnSearch,
+  setColumnSearch,
 }) {
   return (
-    <thead className="vasuzex-datatable-header">
+    <thead className="bg-gray-50 text-xs uppercase text-gray-700 dark:bg-gray-700 dark:text-gray-400">
+      {/* Header Row with Labels and Sort Icons */}
       <tr>
-        {selectable && (
-          <th className="vasuzex-datatable-checkbox-cell">
-            <input
-              type="checkbox"
-              checked={allSelected}
-              onChange={(e) => onSelectAll(e.target.checked)}
-              aria-label="Select all rows"
-            />
-          </th>
-        )}
-        
-        {columns.map((column) => (
+        {columns.map((col) => (
           <th
-            key={column.key}
-            className={`vasuzex-datatable-header-cell ${
-              column.sortable ? 'sortable' : ''
-            } ${sortConfig.key === column.key ? 'sorted' : ''}`}
-            style={{ width: column.width }}
-            onClick={() => column.sortable && onSort(column.key)}
-            role={column.sortable ? 'button' : undefined}
-            tabIndex={column.sortable ? 0 : undefined}
-            onKeyPress={(e) => {
-              if (column.sortable && (e.key === 'Enter' || e.key === ' ')) {
-                e.preventDefault();
-                onSort(column.key);
-              }
-            }}
-            aria-sort={
-              sortConfig.key === column.key
-                ? sortConfig.direction === 'asc'
-                  ? 'ascending'
-                  : 'descending'
-                : undefined
-            }
+            key={col.field}
+            className={col.className || "px-6 py-4"}
+            style={col.sortable ? { cursor: "pointer" } : undefined}
+            onClick={col.sortable ? () => handleSort(col.field) : undefined}
           >
-            <div className="vasuzex-datatable-header-content">
-              <span>{column.label}</span>
-              {column.sortable && (
-                <span className="vasuzex-datatable-sort-icon">
-                  {sortConfig.key === column.key ? (
-                    sortConfig.direction === 'asc' ? '▲' : '▼'
+            <div className="flex items-center">
+              {col.label}
+              {col.sortable && (
+                <span className="ml-1">
+                  {sortBy === col.field ? (
+                    sortOrder === "asc" ? (
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M5 15l7-7 7 7"
+                        />
+                      </svg>
+                    ) : (
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    )
                   ) : (
-                    '⇅'
+                    <svg
+                      className="w-4 h-4 opacity-30"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
+                      />
+                    </svg>
                   )}
                 </span>
               )}
             </div>
           </th>
         ))}
-        
-        <th className="vasuzex-datatable-actions-cell">Actions</th>
+        {actions && <th className="px-6 py-4 text-right">Actions</th>}
+      </tr>
+      
+      {/* Search Row with Input Fields */}
+      <tr>
+        {columns.map((col) => {
+          // Don't show search input for non-searchable columns
+          if (col.searchable === false || col.field === "logo" || col.label === "Actions") {
+            return <th key={col.field}></th>;
+          }
+
+          return (
+            <th key={col.field} className={col.className || "px-6 py-2"}>
+              <input
+                type="text"
+                value={columnSearch[col.field] || ""}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setColumnSearch({ ...columnSearch, [col.field]: value });
+                }}
+                placeholder={`${col.label}`}
+                className="w-full px-2 py-1 border rounded text-xs focus:outline-none focus:ring dark:bg-gray-800 dark:border-gray-600"
+              />
+            </th>
+          );
+        })}
+        {actions && <th className="px-6 py-2 text-right"></th>}
       </tr>
     </thead>
   );
 }
-
-TableHeader.propTypes = {
-  /** Column configuration */
-  columns: PropTypes.arrayOf(
-    PropTypes.shape({
-      key: PropTypes.string.isRequired,
-      label: PropTypes.string.isRequired,
-      sortable: PropTypes.bool,
-      width: PropTypes.string,
-    })
-  ).isRequired,
-  /** Current sort configuration */
-  sortConfig: PropTypes.shape({
-    key: PropTypes.string,
-    direction: PropTypes.oneOf(['asc', 'desc']),
-  }).isRequired,
-  /** Callback when column header is clicked for sorting */
-  onSort: PropTypes.func.isRequired,
-  /** Show selection checkboxes */
-  selectable: PropTypes.bool,
-  /** Whether all rows are selected */
-  allSelected: PropTypes.bool,
-  /** Callback when select all checkbox is clicked */
-  onSelectAll: PropTypes.func,
-};
-
-TableHeader.defaultProps = {
-  selectable: false,
-  allSelected: false,
-};

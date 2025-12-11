@@ -8,6 +8,8 @@
     ".": "./framework/index.js",
     "./Foundation": "./framework/Foundation/index.js",
     "./Foundation/*": "./framework/Foundation/*.js",
+    "./Config": "./framework/Config/index.js",
+    "./Config/*": "./framework/Config/*.js",
     "./Database": "./framework/Database/index.js",
     "./Database/*": "./framework/Database/*.js",
     "./Http": "./framework/Http/index.js",
