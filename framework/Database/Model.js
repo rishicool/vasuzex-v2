@@ -410,6 +410,15 @@ export class Model extends GuruORMModel {
       dirty[this.constructor.updatedAt] = this.attributes[this.constructor.updatedAt];
     }
 
+    // Filter out internal tracking properties before update
+    delete dirty.isDirtyFlag;  // Remove internal tracking fields
+    delete dirty.pendingMutators;  // Remove async mutator tracking
+    delete dirty.isHydrating;  // Remove hydration flag
+    delete dirty.exists;  // Remove exists flag
+    delete dirty.wasRecentlyCreated;  // Remove recently created flag
+    delete dirty.original;  // Remove original tracking
+    delete dirty.relations;  // Remove relations (handled separately)
+
     const pk = this.constructor.primaryKey || 'id';
     
     // Use GuruORM's update

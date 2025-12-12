@@ -8,7 +8,9 @@
  * @module @vasuzex/react/utils/logger
  */
 
-const isDevelopment = typeof import.meta !== 'undefined' && import.meta.env?.DEV;
+const isDevelopment = (
+  (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development')
+);
 
 /**
  * Logger object with standardized logging methods

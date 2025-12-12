@@ -14,6 +14,8 @@
 const CACHE_KEY = 'app-config';
 const CACHE_EXPIRY_KEY = 'app-config-expiry';
 const DEFAULT_CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+const BACKGROUND_REFRESH_KEY = 'app-config-last-background-refresh';
+const BACKGROUND_REFRESH_INTERVAL = 60 * 60 * 1000; // 1 hour - only refresh once per hour
 
 /**
  * Load app configuration from backend
@@ -22,10 +24,15 @@ const DEFAULT_CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
  * @param {Object} options - Options
  * @param {boolean} options.forceRefresh - Skip cache and fetch fresh
  * @param {number} options.cacheDuration - Cache duration in milliseconds
+ * @param {string} options.configUrl - Custom config endpoint path (default: '/config/app-settings')
  * @returns {Promise<Object>} Configuration object
  */
 export async function loadAppConfig(apiBaseUrl, options = {}) {
-    const { forceRefresh = false, cacheDuration = DEFAULT_CACHE_DURATION } = options;
+    const { 
+        forceRefresh = false, 
+        cacheDuration = DEFAULT_CACHE_DURATION,
+        configUrl = '/config/app-settings'
+    } = options;
 
     try {
         // Check cache first (unless force refresh)
@@ -35,7 +42,7 @@ export async function loadAppConfig(apiBaseUrl, options = {}) {
                 console.log('📦 Using cached app config');
 
                 // Refresh in background (fire and forget)
-                refreshConfigInBackground(apiBaseUrl, cacheDuration);
+                refreshConfigInBackground(apiBaseUrl, cacheDuration, configUrl);
 
                 return cached;
             }
@@ -43,7 +50,7 @@ export async function loadAppConfig(apiBaseUrl, options = {}) {
 
         // Fetch from API
         console.log('🌐 Fetching app config from API...');
-        const config = await fetchConfigFromAPI(apiBaseUrl);
+        const config = await fetchConfigFromAPI(apiBaseUrl, configUrl);
 
         // Cache the result
         cacheConfig(config, cacheDuration);
@@ -68,9 +75,16 @@ export async function loadAppConfig(apiBaseUrl, options = {}) {
 
 /**
  * Fetch configuration from API
+ * @param {string} apiBaseUrl - API base URL
+ * @param {string} configUrl - Config endpoint path
  */
-async function fetchConfigFromAPI(apiBaseUrl) {
-    const url = `${apiBaseUrl}/config/app-settings`;
+async function fetchConfigFromAPI(apiBaseUrl, configUrl = '/config/app-settings') {
+    // Remove trailing slash from apiBaseUrl
+    const baseUrl = apiBaseUrl.replace(/\/$/, '');
+    // Ensure configUrl starts with /
+    const path = configUrl.startsWith('/') ? configUrl : `/${configUrl}`;
+    
+    const url = `${baseUrl}${path}`;
 
     const response = await fetch(url, {
         method: 'GET',
@@ -140,18 +154,45 @@ function cacheConfig(config, duration) {
 
 /**
  * Refresh config in background (non-blocking)
+ * Only refreshes if enough time has passed since last refresh
+ * @param {string} apiBaseUrl - API base URL
+ * @param {number} cacheDuration - Cache duration
+ * @param {string} configUrl - Config endpoint path
  */
-async function refreshConfigInBackground(apiBaseUrl, cacheDuration) {
+async function refreshConfigInBackground(apiBaseUrl, cacheDuration, configUrl = '/config/app-settings') {
     try {
+        // Check if we recently did a background refresh
+        const lastRefresh = localStorage.getItem(BACKGROUND_REFRESH_KEY);
+        const now = Date.now();
+        
+        if (lastRefresh) {
+            const lastRefreshTime = parseInt(lastRefresh, 10);
+            const timeSinceRefresh = now - lastRefreshTime;
+            
+            // Skip if refreshed within the last hour
+            if (timeSinceRefresh < BACKGROUND_REFRESH_INTERVAL) {
+                return; // Don't refresh yet
+            }
+        }
+        
+        // Mark that we're doing a background refresh
+        localStorage.setItem(BACKGROUND_REFRESH_KEY, now.toString());
+        
         // Small delay to not block main thread
         setTimeout(async () => {
-            const config = await fetchConfigFromAPI(apiBaseUrl);
-            cacheConfig(config, cacheDuration);
-            console.log('🔄 Config refreshed in background');
+            try {
+                const config = await fetchConfigFromAPI(apiBaseUrl, configUrl);
+                cacheConfig(config, cacheDuration);
+                console.log('🔄 Config refreshed in background');
+            } catch (error) {
+                // If refresh fails, remove the marker so we can retry sooner
+                localStorage.removeItem(BACKGROUND_REFRESH_KEY);
+                console.debug('Background refresh failed (not critical):', error);
+            }
         }, 1000);
     } catch (error) {
         // Silent fail - cached version is still valid
-        console.debug('Background refresh failed (not critical):', error);
+        console.debug('Background refresh setup failed:', error);
     }
 }
 
@@ -161,6 +202,7 @@ async function refreshConfigInBackground(apiBaseUrl, cacheDuration) {
 export function clearConfigCache() {
     localStorage.removeItem(CACHE_KEY);
     localStorage.removeItem(CACHE_EXPIRY_KEY);
+    localStorage.removeItem(BACKGROUND_REFRESH_KEY);
     console.log('🗑️ Config cache cleared');
 }
 
