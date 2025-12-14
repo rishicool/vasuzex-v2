@@ -8,11 +8,13 @@
 
 import { useState, useRef, useCallback } from 'react';
 import PropTypes from 'prop-types';
+import { EnhancedPhotoManager } from './EnhancedPhotoManager.jsx';
 
 /**
  * Photo upload and management component
  * 
  * @param {Object} props
+ * @param {string} [props.variant='basic'] - 'basic' or 'enhanced' for advanced features
  * @param {Array<string|Object>} [props.photos=[]] - Initial photos (URLs or objects)
  * @param {Function} props.onPhotosChange - Callback when photos change
  * @param {Function} [props.onUpload] - Custom upload handler
@@ -23,6 +25,13 @@ import PropTypes from 'prop-types';
  * @param {string} [props.className] - Additional CSS classes
  * @param {boolean} [props.disabled] - Disable uploads
  * @param {Function} [props.getPhotoUrl] - Get URL from photo object
+ * 
+ * Enhanced variant props:
+ * @param {string|number} props.entityId - Entity ID (for enhanced variant)
+ * @param {Object} props.photosHook - Custom photos hook (for enhanced variant)
+ * @param {string} [props.title] - Title for enhanced variant
+ * @param {string} [props.description] - Description for enhanced variant
+ * @param {Object} [props.components] - Custom components for enhanced variant
  * 
  * @example
  * <PhotoManager
@@ -39,6 +48,7 @@ import PropTypes from 'prop-types';
  * />
  */
 export function PhotoManager({
+  variant = 'basic',
   photos = [],
   onPhotosChange,
   onUpload,
@@ -49,7 +59,12 @@ export function PhotoManager({
   className = '',
   disabled = false,
   getPhotoUrl = (photo) => typeof photo === 'string' ? photo : photo.url,
+  ...enhancedProps
 }) {
+  // If enhanced variant requested, use EnhancedPhotoManager
+  if (variant === 'enhanced') {
+    return <EnhancedPhotoManager maxFiles={maxPhotos} {...enhancedProps} />;
+  }
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState(null);
@@ -292,6 +307,8 @@ PhotoManager.propTypes = {
       }),
     ])
   ),
+  /** Component variant - 'basic' for simple manager, 'enhanced' for advanced features */
+  variant: PropTypes.oneOf(['basic', 'enhanced']),
   /** Callback when photos change */
   onPhotosChange: PropTypes.func,
   /** Alternative prop name for onChange */
@@ -318,6 +335,23 @@ PhotoManager.propTypes = {
   getPhotoUrl: PropTypes.func,
   /** Helper text displayed below upload area */
   helperText: PropTypes.string,
+  // Enhanced variant props
+  /** Entity ID (required for enhanced variant) */
+  entityId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  /** Photos hook with photos, loading, error, upload, etc. (required for enhanced variant) */
+  photosHook: PropTypes.object,
+  /** Title for enhanced variant */
+  title: PropTypes.string,
+  /** Description for enhanced variant */
+  description: PropTypes.string,
+  /** Custom components for enhanced variant */
+  components: PropTypes.object,
+  /** Grid columns class for enhanced variant */
+  gridCols: PropTypes.string,
+  /** Empty state text for enhanced variant */
+  emptyStateText: PropTypes.string,
+  /** Max files for enhanced variant */
+  maxFiles: PropTypes.number,
 };
 
 PhotoManager.defaultProps = {

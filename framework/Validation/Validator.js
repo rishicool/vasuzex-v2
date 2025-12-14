@@ -27,6 +27,43 @@ export class Validator {
   }
 
   /**
+   * Get nested value from object using dot notation
+   * @param {Object} obj - Object to search
+   * @param {String} path - Dot notation path (e.g., 'user.profile.name')
+   * @returns {*} Value at path or undefined
+   * 
+   * @example
+   * const data = { user: { profile: { name: 'John' } } };
+   * Validator.getNestedValue(data, 'user.profile.name'); // 'John'
+   */
+  static getNestedValue(obj, path) {
+    return path.split('.').reduce((current, key) => current?.[key], obj);
+  }
+
+  /**
+   * Validate required fields in data object
+   * @param {Object} data - Data object to validate
+   * @param {Array<String>} fields - Required field names (supports dot notation)
+   * @returns {Object} Object with errors (empty if valid)
+   * 
+   * @example
+   * const errors = Validator.validateRequiredFields(data, ['name', 'user.email']);
+   * if (Object.keys(errors).length > 0) {
+   *   throw new ValidationError(errors);
+   * }
+   */
+  static validateRequiredFields(data, fields) {
+    const errors = {};
+    for (const field of fields) {
+      const value = this.getNestedValue(data, field);
+      if (value === undefined || value === null || (typeof value === 'string' && value.trim() === '')) {
+        errors[field] = `${field} is required`;
+      }
+    }
+    return errors;
+  }
+
+  /**
    * Validate middleware
    */
   static middleware(schema) {

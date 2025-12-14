@@ -171,6 +171,27 @@ export class QueryBuilder {
    * Update records
    */
   async update(data) {
+    // Add updated_at if model class has timestamps enabled
+    if (this.query._modelClass) {
+      const modelClass = this.query._modelClass;
+      if (modelClass.timestamps && modelClass.updatedAt && data[modelClass.updatedAt] === undefined) {
+        data[modelClass.updatedAt] = new Date();
+      }
+    }
+    
+    return await this.query.update(data);
+  }
+
+  /**
+   * Update records with timestamps (for use with Model)
+   * @param {Object} data - Data to update
+   * @param {boolean} withTimestamps - Whether to add updated_at timestamp
+   * @returns {Promise}
+   */
+  async updateWithTimestamps(data, withTimestamps = true) {
+    if (withTimestamps) {
+      data.updated_at = new Date();
+    }
     return await this.query.update(data);
   }
 

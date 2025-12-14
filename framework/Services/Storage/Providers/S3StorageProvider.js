@@ -14,6 +14,7 @@ export class S3StorageProvider extends BaseStorageProvider {
     this.key = config.key;
     this.secret = config.secret;
     this.baseUrl = config.url;
+    this.forcePathStyle = config.forcePathStyle || false; // For MinIO compatibility
     this.s3Client = null;
   }
 
@@ -30,6 +31,7 @@ export class S3StorageProvider extends BaseStorageProvider {
       this.s3Client = new S3Client({
         region: this.region,
         endpoint: this.endpoint,
+        forcePathStyle: this.forcePathStyle, // Required for MinIO
         credentials: {
           accessKeyId: this.key,
           secretAccessKey: this.secret,
@@ -130,6 +132,25 @@ export class S3StorageProvider extends BaseStorageProvider {
       return `${this.baseUrl}/${path}`;
     }
     return `https://${this.bucket}.s3.${this.region}.amazonaws.com/${path}`;
+  }
+
+  /**
+   * Get presigned URL for temporary access
+   * @param {string} path - File path
+   * @param {number} expiresIn - Expiration time in seconds (default: 7 days)
+   * @returns {Promise<string>} Presigned URL
+   */
+  async temporaryUrl(path, expiresIn = 604800) {
+    const client = await this.getClient();
+    const { GetObjectCommand } = await import('@aws-sdk/client-s3');
+    const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner');
+
+    const command = new GetObjectCommand({
+      Bucket: this.bucket,
+      Key: path,
+    });
+
+    return await getSignedUrl(client, command, { expiresIn });
   }
 
   /**

@@ -219,12 +219,13 @@ export class FileValidator {
 }
 
 /**
- * Validation Error
+ * File Validation Error
+ * Renamed to avoid conflict with framework's ValidationError
  */
-export class ValidationError extends Error {
+export class FileValidationError extends Error {
   constructor(message, errors = []) {
     super(message);
-    this.name = 'ValidationError';
+    this.name = 'FileValidationError';
     this.errors = errors;
   }
 }

@@ -26,10 +26,6 @@ export class StorageServiceProvider extends ServiceProvider {
    */
   async boot() {
     // Storage service is ready to use
-    if (this.config('filesystems.default')) {
-      const storage = this.make('storage');
-      console.log(`[StorageServiceProvider] Storage service initialized with driver: ${this.config('filesystems.default')}`);
-    }
   }
 }
 

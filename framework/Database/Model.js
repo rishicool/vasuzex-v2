@@ -832,7 +832,42 @@ export class Model extends GuruORMModel {
       query = query.whereNull(this.deletedAt);
     }
 
+    // Monkey-patch the update method to add timestamps
+    const modelClass = this;
+    const originalUpdate = query.update;
+    
+    query.update = async function(data) {
+      // Add updated_at if timestamps are enabled
+      if (modelClass.timestamps && modelClass.updatedAt && data[modelClass.updatedAt] === undefined) {
+        data[modelClass.updatedAt] = new Date();
+      }
+      return await originalUpdate.call(this, data);
+    };
+
     return query;
+  }
+
+  /**
+   * Override where() to pass through model context
+   */
+  static where(...args) {
+    const query = this.query();
+    return query.where(...args);
+  }
+
+  /**
+   * Static update method with timestamps
+   * Override to add updated_at automatically
+   */
+  static async update(id, attributes) {
+    // Add updated_at if timestamps are enabled
+    if (this.timestamps && this.updatedAt && attributes[this.updatedAt] === undefined) {
+      attributes[this.updatedAt] = new Date();
+    }
+
+    const pk = this.primaryKey || 'id';
+    const query = this.query();
+    return await query.where(pk, id).update(attributes);
   }
 
   /**

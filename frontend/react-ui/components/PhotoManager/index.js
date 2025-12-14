@@ -7,4 +7,5 @@
  */
 
 export { PhotoManager } from './PhotoManager.jsx';
+export { EnhancedPhotoManager } from './EnhancedPhotoManager.jsx';
 export { default } from './PhotoManager.jsx';

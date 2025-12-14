@@ -5,6 +5,7 @@ import { LogServiceProvider } from '../Services/Log/LogServiceProvider.js';
 import { HashServiceProvider } from './Providers/HashServiceProvider.js';
 import { ValidationServiceProvider } from './Providers/ValidationServiceProvider.js';
 import { EncryptionServiceProvider } from './Providers/EncryptionServiceProvider.js';
+import { StorageServiceProvider } from '../Services/Storage/StorageServiceProvider.js';
 
 /**
  * BaseApp - Base class for application-level apps (Express apps)
@@ -38,6 +39,7 @@ export class BaseApp extends Application {
     this.register(HashServiceProvider);
     this.register(ValidationServiceProvider);
     this.register(EncryptionServiceProvider);
+    this.register(StorageServiceProvider);
   }
 
   /**
