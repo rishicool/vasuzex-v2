@@ -354,16 +354,4 @@ PhotoManager.propTypes = {
   maxFiles: PropTypes.number,
 };
 
-PhotoManager.defaultProps = {
-  photos: [],
-  onPhotosChange: () => {},
-  maxPhotos: 10,
-  maxFileSize: 5 * 1024 * 1024, // 5MB
-  acceptedTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
-  multiple: true,
-  disabled: false,
-  className: '',
-  getPhotoUrl: (photo) => (typeof photo === 'string' ? photo : photo.url || ''),
-};
-
 export default PhotoManager;

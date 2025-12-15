@@ -11,6 +11,7 @@
 // Components
 export * from './components/DataTable/index.js';
 export * from './components/Autocomplete/index.js';
+export * from './components/AutocompleteWithImage/index.js';
 export * from './components/Forms/index.js';
 export * from './components/PhotoManager/index.js';
 export * from './components/ReadMore/index.js';

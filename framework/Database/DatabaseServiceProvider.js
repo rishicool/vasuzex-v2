@@ -29,6 +29,12 @@ export class DatabaseServiceProvider extends ServiceProvider {
       const connection = this.app.make('db');
       Model.setConnection(connection);
     }
+
+    // Set logger on Model for automatic database error logging
+    if (this.app.has('log')) {
+      const logger = this.app.make('log');
+      Model.logger = logger;
+    }
   }
 }
 

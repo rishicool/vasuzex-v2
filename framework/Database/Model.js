@@ -4,6 +4,7 @@
  */
 
 import { Model as GuruORMModel } from 'guruorm';
+import { logDatabaseError, enhanceDatabaseError } from './DatabaseErrorHandler.js';
 
 export class Model extends GuruORMModel {
   // Laravel-style properties
@@ -37,6 +38,9 @@ export class Model extends GuruORMModel {
 
   // Event dispatcher
   static dispatcher = null;
+
+  // Logger instance (set by application)
+  static logger = null;
 
   // Instance properties
   exists = false;
@@ -312,38 +316,47 @@ export class Model extends GuruORMModel {
    * Save model (create or update)
    */
   async save() {
-    // Resolve any pending async mutators first
-    if (this.pendingMutators.length > 0) {
-      await Promise.all(this.pendingMutators);
-      this.pendingMutators = [];
-    }
-
-    // Fire saving event
-    if (await this.fireModelEvent('saving') === false) {
-      return false;
-    }
-
-    // Determine if creating or updating
-    if (this.exists) {
-      const saved = await this.performUpdate();
-      
-      if (saved) {
-        await this.fireModelEvent('updated', false);
-        await this.fireModelEvent('saved', false);
+    try {
+      // Resolve any pending async mutators first
+      if (this.pendingMutators.length > 0) {
+        await Promise.all(this.pendingMutators);
+        this.pendingMutators = [];
       }
 
-      return saved;
-    } else {
-      const saved = await this.performInsert();
-
-      if (saved) {
-        this.exists = true;
-        this.wasRecentlyCreated = true;
-        await this.fireModelEvent('created', false);
-        await this.fireModelEvent('saved', false);
+      // Fire saving event
+      if (await this.fireModelEvent('saving') === false) {
+        return false;
       }
 
-      return saved;
+      // Determine if creating or updating
+      if (this.exists) {
+        const saved = await this.performUpdate();
+        
+        if (saved) {
+          await this.fireModelEvent('updated', false);
+          await this.fireModelEvent('saved', false);
+        }
+
+        return saved;
+      } else {
+        const saved = await this.performInsert();
+
+        if (saved) {
+          this.exists = true;
+          this.wasRecentlyCreated = true;
+          await this.fireModelEvent('created', false);
+          await this.fireModelEvent('saved', false);
+        }
+
+        return saved;
+      }
+    } catch (error) {
+      // Log database error if logger is available
+      if (this.constructor.logger) {
+        logDatabaseError(error, this.constructor.logger);
+      }
+      // Enhance and re-throw
+      throw enhanceDatabaseError(error);
     }
   }
 
@@ -651,9 +664,18 @@ export class Model extends GuruORMModel {
    * Create new instance and save
    */
   static async create(attributes = {}) {
-    const instance = new this(attributes);
-    await instance.save();
-    return instance;
+    try {
+      const instance = new this(attributes);
+      await instance.save();
+      return instance;
+    } catch (error) {
+      // Log database error if logger is available
+      if (this.logger) {
+        logDatabaseError(error, this.logger);
+      }
+      // Enhance and re-throw
+      throw enhanceDatabaseError(error);
+    }
   }
 
   /**
@@ -661,17 +683,19 @@ export class Model extends GuruORMModel {
    * Returns the insert result from query builder
    */
   static async insert(attributes) {
-    // Use query builder - must use column quoting for reserved words like "password"
-    const query = this.query();
-    
-    // GuruORM's query builder should handle this, but if not, wrap in try-catch
     try {
+      // Use query builder - must use column quoting for reserved words like "password"
+      const query = this.query();
+      
       const result = await query.insert(attributes);
       return result;
     } catch (error) {
-      // If it's a reserved word error, try with explicit column mapping
-      console.error('Insert error:', error.message);
-      throw error;
+      // Log database error if logger is available
+      if (this.logger) {
+        logDatabaseError(error, this.logger);
+      }
+      // Enhance and re-throw
+      throw enhanceDatabaseError(error);
     }
   }
 
@@ -679,31 +703,49 @@ export class Model extends GuruORMModel {
    * Update records matching conditions (static method for performUpdate)
    */
   static async updateWhere(conditions, attributes) {
-    const query = this.query();
-    
-    // Apply conditions
-    for (const [key, value] of Object.entries(conditions)) {
-      query.where(key, value);
+    try {
+      const query = this.query();
+      
+      // Apply conditions
+      for (const [key, value] of Object.entries(conditions)) {
+        query.where(key, value);
+      }
+      
+      return await query.update(attributes);
+    } catch (error) {
+      // Log database error if logger is available
+      if (this.logger) {
+        logDatabaseError(error, this.logger);
+      }
+      // Enhance and re-throw
+      throw enhanceDatabaseError(error);
     }
-    
-    return await query.update(attributes);
   }
 
   /**
    * Delete records by primary key (static method)
    */
   static async destroy(id) {
-    const pk = this.primaryKey || 'id';
-    const query = this.query();
+    try {
+      const pk = this.primaryKey || 'id';
+      const query = this.query();
     
-    if (this.softDeletes) {
-      // Soft delete
-      return await query.where(pk, id).update({
-        [this.deletedAt]: new Date()
-      });
-    } else {
-      // Hard delete
-      return await query.where(pk, id).delete();
+      if (this.softDeletes) {
+        // Soft delete
+        return await query.where(pk, id).update({
+          [this.deletedAt]: new Date()
+        });
+      } else {
+        // Hard delete
+        return await query.where(pk, id).delete();
+      }
+    } catch (error) {
+      // Log database error if logger is available
+      if (this.logger) {
+        logDatabaseError(error, this.logger);
+      }
+      // Enhance and re-throw
+      throw enhanceDatabaseError(error);
     }
   }
 
@@ -711,21 +753,30 @@ export class Model extends GuruORMModel {
    * Find by primary key (override GuruORM's find)
    */
   static async find(id) {
-    const pk = this.primaryKey || 'id';
-    let query = this.where(pk, id);
-    
-    // Apply soft deletes
-    if (this.softDeletes) {
-      query = query.whereNull(this.deletedAt);
+    try {
+      const pk = this.primaryKey || 'id';
+      let query = this.where(pk, id);
+      
+      // Apply soft deletes
+      if (this.softDeletes) {
+        query = query.whereNull(this.deletedAt);
+      }
+
+      const result = await query.first();
+
+      if (!result) {
+        return null;
+      }
+
+      return this.newFromBuilder(result);
+    } catch (error) {
+      // Log database error if logger is available
+      if (this.logger) {
+        logDatabaseError(error, this.logger);
+      }
+      // Enhance and re-throw
+      throw enhanceDatabaseError(error);
     }
-
-    const result = await query.first();
-
-    if (!result) {
-      return null;
-    }
-
-    return this.newFromBuilder(result);
   }
 
   /**

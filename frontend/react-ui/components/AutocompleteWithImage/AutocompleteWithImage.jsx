@@ -1,10 +1,10 @@
 /**
- * Autocomplete Component
+ * Autocomplete With Image Component
  * 
- * An accessible autocomplete/typeahead component with async search support,
- * keyboard navigation, and customizable rendering.
+ * An autocomplete component with image/icon support for options.
+ * Useful for brands, products, users, etc. with avatars/logos.
  * 
- * @module components/Autocomplete
+ * @module components/AutocompleteWithImage
  */
 
 import { useState, useEffect, useRef, useCallback, memo } from 'react';
@@ -12,20 +12,20 @@ import PropTypes from 'prop-types';
 import { useDebounce } from '../../hooks/useDebounce.js';
 
 /**
- * Autocomplete component with async search
+ * Autocomplete component with image support
  * 
  * @param {Object} props
- * @param {Array|Function} props.options - Static options array or async function
+ * @param {Array} props.options - Options array
  * @param {string} [props.value] - Selected value
  * @param {Function} props.onChange - Change callback (value, label, option)
  * @param {Function} [props.onSearch] - Async search callback
  * @param {string} [props.selectedLabel] - Display label for selected value
  * @param {string} [props.placeholder] - Input placeholder
- * @param {Function} [props.renderOption] - Custom option renderer
  * @param {Function} [props.getOptionLabel] - Get option display label
  * @param {Function} [props.getOptionValue] - Get option value
+ * @param {Function} [props.getOptionImage] - Get option image URL
+ * @param {Function} [props.getOptionSecondary] - Get option secondary text
  * @param {number} [props.debounceMs=300] - Debounce delay for async search
- * @param {number} [props.minChars=0] - Minimum characters to trigger search
  * @param {boolean} [props.loading] - Loading state
  * @param {string} [props.className] - Additional CSS classes
  * @param {boolean} [props.disabled] - Disable the input
@@ -35,34 +35,33 @@ import { useDebounce } from '../../hooks/useDebounce.js';
  * @param {string} [props.id] - Input id attribute
  * 
  * @example
- * // With selectedLabel and onSearch
- * <Autocomplete
+ * // Brand autocomplete with logos
+ * <AutocompleteWithImage
  *   value={brandId}
  *   selectedLabel={brandName}
  *   onChange={(val, label) => {
  *     setBrandId(val);
  *     setBrandName(label);
  *   }}
- *   onSearch={async (query) => {
- *     const brands = await brandService.search(query);
- *     return brands;
- *   }}
+ *   onSearch={fetchBrands}
  *   options={brandOptions}
- *   placeholder="Search brands..."
+ *   getOptionImage={(option) => option.logo_url}
+ *   getOptionSecondary={(option) => `${option.products_count} products`}
+ *   placeholder=\"Search brands...\"
  * />
  */
-export const Autocomplete = memo(function Autocomplete({
+export const AutocompleteWithImage = memo(function AutocompleteWithImage({
   options = [],
-  value = null,
+  value = '',
   onChange,
   onSearch,
   selectedLabel,
   placeholder = 'Search...',
-  renderOption,
-  getOptionLabel = (option) => (typeof option === 'string' ? option : option.label || ''),
-  getOptionValue = (option) => (typeof option === 'string' ? option : option.value || option.id || ''),
+  getOptionLabel = (option) => option.label || option.name || '',
+  getOptionValue = (option) => option.value || option.id || '',
+  getOptionImage = (option) => option.image || option.image_url || option.icon_url || null,
+  getOptionSecondary = () => null,
   debounceMs = 300,
-  minChars = 0,
   loading: externalLoading = false,
   className = '',
   disabled = false,
@@ -74,6 +73,7 @@ export const Autocomplete = memo(function Autocomplete({
   const [inputValue, setInputValue] = useState('');
   const [filteredOptions, setFilteredOptions] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
+  const [failedImages, setFailedImages] = useState(new Set());
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [internalLoading, setInternalLoading] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -81,125 +81,61 @@ export const Autocomplete = memo(function Autocomplete({
   const wrapperRef = useRef(null);
   const inputRef = useRef(null);
   const listRef = useRef(null);
-  const lastSearchQuery = useRef(null);
+  const lastSearchQuery = useRef('');
   
   const debouncedInputValue = useDebounce(inputValue, debounceMs);
-  const hasOnSearch = typeof onSearch === 'function';
-  const isAsync = typeof options === 'function';
   const loading = externalLoading || internalLoading;
   
   // Determine what to show in the input
   const displayValue = isFocused ? inputValue : (selectedLabel || inputValue);
   
   /**
-   * Load options (static or async)
+   * Load options
    */
   const loadOptions = useCallback(async (query) => {
-    // Always allow dropdown to open on focus
-    if (query.length < minChars && minChars > 0) {
-      setFilteredOptions([]);
+    // Prevent duplicate API calls for same query
+    if (lastSearchQuery.current === query) {
       return;
     }
+    lastSearchQuery.current = query;
     
-    // If onSearch is provided, use it
-    if (hasOnSearch) {
+    if (onSearch) {
       try {
         setInternalLoading(true);
         await onSearch(query);
-        // Options will be updated via props and handled in separate useEffect
       } catch (error) {
         console.error('Autocomplete search error:', error);
-        setFilteredOptions([]);
       } finally {
         setInternalLoading(false);
       }
-      return;
     }
-    
-    if (isAsync) {
-      try {
-        setInternalLoading(true);
-        const results = await options(query);
-        setFilteredOptions(results || []);
-      } catch (error) {
-        console.error('Autocomplete search error:', error);
-        setFilteredOptions([]);
-      } finally {
-        setInternalLoading(false);
-      }
-    } else {
-      // Filter static options
-      const filtered = options.filter(option => {
-        const label = getOptionLabel(option).toLowerCase();
-        return label.includes(query.toLowerCase());
-      });
-      setFilteredOptions(filtered);
-    }
-  }, [hasOnSearch, onSearch, isAsync, minChars, getOptionLabel]);
+  }, [onSearch]);
   
   /**
    * Effect: Load options when debounced input changes
    */
   useEffect(() => {
-    if (isFocused && !hasOnSearch) {
-      // Only auto-load for async functions or static filtering
+    if (isFocused) {
       loadOptions(debouncedInputValue);
     }
-  }, [debouncedInputValue, isFocused, loadOptions, hasOnSearch]);
+  }, [debouncedInputValue, isFocused, loadOptions]);
   
   /**
-   * Effect: For onSearch pattern, call it manually and update filtered options from props
+   * Effect: Update filtered options when options prop changes
    */
   useEffect(() => {
-    if (hasOnSearch && isFocused) {
-      // Prevent duplicate calls for the same query
-      if (lastSearchQuery.current === debouncedInputValue) {
-        return;
-      }
-      
-      const callOnSearch = async () => {
-        if (debouncedInputValue.length < minChars && minChars > 0) {
-          setFilteredOptions([]);
-          lastSearchQuery.current = debouncedInputValue;
-          return;
-        }
-        
-        try {
-          setInternalLoading(true);
-          lastSearchQuery.current = debouncedInputValue;
-          await onSearch(debouncedInputValue);
-        } catch (error) {
-          console.error('Autocomplete search error:', error);
-          setFilteredOptions([]);
-        } finally {
-          setInternalLoading(false);
-        }
-      };
-      
-      callOnSearch();
+    if (onSearch) {
+      // For async search, use options from parent state
+      setFilteredOptions(options || []);
+    } else {
+      // For static options, filter locally
+      const filtered = options.filter(option => {
+        const label = getOptionLabel(option).toLowerCase();
+        return label.includes(debouncedInputValue.toLowerCase());
+      });
+      setFilteredOptions(filtered);
     }
-  }, [debouncedInputValue, isFocused, hasOnSearch, onSearch, minChars]);
-  
-  /**
-   * Effect: Update filtered options when options prop changes (for onSearch pattern)
-   */
-  useEffect(() => {
-    if (hasOnSearch && options && Array.isArray(options)) {
-      setFilteredOptions(options);
-    }
-  }, [hasOnSearch, options]);
-  
-  /**
-   * Effect: Initialize input value from selected value
-   */
-  useEffect(() => {
-    if (value) {
-      const selectedOption = isAsync ? null : options.find(opt => getOptionValue(opt) === value);
-      if (selectedOption) {
-        setInputValue(getOptionLabel(selectedOption));
-      }
-    }
-  }, [value, options, isAsync, getOptionLabel, getOptionValue]);
+  }, [onSearch, options, debouncedInputValue, getOptionLabel]);
   
   /**
    * Effect: Close dropdown when clicking outside
@@ -235,7 +171,6 @@ export const Autocomplete = memo(function Autocomplete({
   const handleFocus = () => {
     setIsFocused(true);
     setIsOpen(true);
-    // Clear input to allow searching when focused
     if (selectedLabel && !inputValue) {
       setInputValue('');
     }
@@ -377,12 +312,14 @@ export const Autocomplete = memo(function Autocomplete({
           >
             {filteredOptions.length === 0 ? (
               <li className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                {loading ? 'Searching...' : minChars > 0 && inputValue.length < minChars ? `Type at least ${minChars} characters...` : noResultsText}
+                {loading ? 'Searching...' : noResultsText}
               </li>
             ) : (
               filteredOptions.map((option, index) => {
                 const label = getOptionLabel(option);
                 const val = getOptionValue(option);
+                const imageUrl = getOptionImage(option);
+                const secondaryText = getOptionSecondary(option);
                 const isSelected = val === value;
                 const isHighlighted = highlightedIndex === index;
                 
@@ -390,19 +327,47 @@ export const Autocomplete = memo(function Autocomplete({
                   <li
                     key={val || index}
                     id={`${id}-option-${index}`}
-                    className={`cursor-pointer px-4 py-2.5 text-sm transition-colors ${
+                    className={`cursor-pointer px-3 py-2 transition-colors ${
                       isHighlighted
                         ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300'
                         : 'text-gray-900 hover:bg-gray-50 dark:text-white dark:hover:bg-gray-700'
-                    } ${
-                      isSelected ? 'font-medium' : ''
                     }`}
                     onClick={() => handleSelectOption(option)}
                     onMouseEnter={() => setHighlightedIndex(index)}
                     role="option"
                     aria-selected={isSelected}
                   >
-                    {renderOption ? renderOption(option, isSelected) : label}
+                    <div className="flex items-center gap-3">
+                      {/* Image/Icon */}
+                      {imageUrl && !failedImages.has(imageUrl) ? (
+                        <img
+                          src={imageUrl}
+                          alt={label}
+                          className="h-10 w-10 flex-shrink-0 rounded-md object-cover"
+                          onError={() => {
+                            setFailedImages(prev => new Set(prev).add(imageUrl));
+                          }}
+                        />
+                      ) : (
+                        <div className="h-10 w-10 flex-shrink-0 rounded-md bg-gray-200 dark:bg-gray-600 flex items-center justify-center">
+                          <span className="text-sm font-medium text-gray-500 dark:text-gray-300">
+                            {label.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                      
+                      {/* Text Content */}
+                      <div className="flex-1 min-w-0">
+                        <div className={`text-sm truncate ${isSelected ? 'font-medium' : ''}`}>
+                          {label}
+                        </div>
+                        {secondaryText && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                            {secondaryText}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </li>
                 );
               })
@@ -414,15 +379,12 @@ export const Autocomplete = memo(function Autocomplete({
   );
 });
 
-Autocomplete.propTypes = {
-  /** Static options array or async fetch function */
-  options: PropTypes.oneOfType([
-    PropTypes.arrayOf(PropTypes.any),
-    PropTypes.func,
-  ]),
+AutocompleteWithImage.propTypes = {
+  /** Options array */
+  options: PropTypes.arrayOf(PropTypes.any),
   /** Selected value */
   value: PropTypes.any,
-  /** Change handler when option is selected (value, label, option) */
+  /** Change handler (value, label, option) */
   onChange: PropTypes.func.isRequired,
   /** Async search callback */
   onSearch: PropTypes.func,
@@ -430,16 +392,16 @@ Autocomplete.propTypes = {
   selectedLabel: PropTypes.string,
   /** Placeholder text */
   placeholder: PropTypes.string,
-  /** Custom option renderer */
-  renderOption: PropTypes.func,
   /** Function to extract label from option */
   getOptionLabel: PropTypes.func,
   /** Function to extract value from option */
   getOptionValue: PropTypes.func,
+  /** Function to extract image URL from option */
+  getOptionImage: PropTypes.func,
+  /** Function to extract secondary text from option */
+  getOptionSecondary: PropTypes.func,
   /** Debounce delay in milliseconds */
   debounceMs: PropTypes.number,
-  /** Minimum characters before search */
-  minChars: PropTypes.number,
   /** Show loading state */
   loading: PropTypes.bool,
   /** Additional CSS classes */
@@ -456,4 +418,4 @@ Autocomplete.propTypes = {
   id: PropTypes.string,
 };
 
-export default Autocomplete;
+export default AutocompleteWithImage;

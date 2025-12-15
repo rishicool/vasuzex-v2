@@ -5,6 +5,12 @@
 
 export { Model } from './Model.js';
 export { QueryBuilder } from './QueryBuilder.js';
+export { 
+  parseDatabaseError, 
+  isDatabaseError, 
+  logDatabaseError, 
+  enhanceDatabaseError 
+} from './DatabaseErrorHandler.js';
 
 // Re-export GuruORM utilities that users might need
 // This allows users to use vasuzex as the single import source
