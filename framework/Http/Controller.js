@@ -25,8 +25,25 @@ export class Controller {
 
   /**
    * Send error response
+   * Automatically detects ValidationError and extracts errors
    */
   error(res, message = 'Error', status = 400, errors = null) {
+    // If message is actually an Error object, extract details
+    if (message instanceof Error) {
+      const error = message;
+      // Check if it's a ValidationError (has statusCode 422 and errors property)
+      if (error.statusCode === 422 && error.errors) {
+        return new Response(res).validationError(error.errors, error.message);
+      }
+      // Check if it's any ApiError with statusCode and errors
+      if (error.statusCode) {
+        return new Response(res).error(error.message, error.statusCode, error.errors);
+      }
+      // Regular Error object
+      return new Response(res).error(error.message, status, errors);
+    }
+    
+    // Standard error response with message string
     return new Response(res).error(message, status, errors);
   }
 

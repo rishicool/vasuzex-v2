@@ -204,4 +204,106 @@ export function validate(value, validatorName, arg1, arg2) {
   return { isValid: false, error };
 }
 
-export default { validators, validationMessages, validate };
+/**
+ * Form Error Handling Utilities for Formik
+ * 
+ * These utilities help manage backend validation errors in Formik forms.
+ */
+
+/**
+ * Converts flat dot-notation error object to nested structure for Formik
+ * 
+ * Example:
+ * Input:  { "bankdetails.ifscCode": "IFSC code is invalid" }
+ * Output: { bankdetails: { ifscCode: "IFSC code is invalid" } }
+ * 
+ * @param {Object} errors - Flat error object with dot-notation keys
+ * @returns {Object} Nested error object for Formik
+ */
+export function transformBackendErrors(errors) {
+  if (!errors || typeof errors !== 'object') {
+    return {};
+  }
+
+  const nested = {};
+  
+  Object.keys(errors).forEach((field) => {
+    if (field.includes('.')) {
+      // Handle nested fields like "bankdetails.ifscCode"
+      const parts = field.split('.');
+      let current = nested;
+      
+      for (let i = 0; i < parts.length - 1; i++) {
+        if (!current[parts[i]]) {
+          current[parts[i]] = {};
+        }
+        current = current[parts[i]];
+      }
+      
+      current[parts[parts.length - 1]] = errors[field];
+    } else {
+      // Handle top-level fields
+      nested[field] = errors[field];
+    }
+  });
+  
+  return nested;
+}
+
+/**
+ * Handles API validation errors and sets them in Formik-compatible format
+ * 
+ * @param {Error} error - Error object from API call
+ * @param {Function} setBackendErrors - State setter for backend errors
+ * @param {Object} toast - Toast notification object with error method
+ * @returns {boolean} True if error was handled as validation error
+ */
+export function handleBackendValidationError(error, setBackendErrors, toast) {
+  // Check if this is a validation error (422 status)
+  if (error.isValidationError && error.errors) {
+    console.log("✅ Validation error detected:", error.errors);
+    
+    // Transform flat errors to nested structure
+    const nested = transformBackendErrors(error.errors);
+    
+    setBackendErrors(nested);
+    console.log("✅ Backend errors set:", nested);
+    
+    if (toast && typeof toast.error === 'function') {
+      toast.error(error.message || "Please fix the validation errors");
+    }
+    return true;
+  }
+  
+  return false;
+}
+
+/**
+ * Flattens nested error object to dot-notation for easier access
+ * 
+ * Example:
+ * Input:  { bankdetails: { ifscCode: "Invalid" } }
+ * Output: { "bankdetails.ifscCode": "Invalid" }
+ * 
+ * @param {Object} errors - Nested error object
+ * @param {string} prefix - Prefix for nested keys (used internally)
+ * @returns {Object} Flattened error object with dot-notation keys
+ */
+export function flattenErrors(errors, prefix = "") {
+  const flattened = {};
+
+  for (const key in errors) {
+    const value = errors[key];
+    const newKey = prefix ? `${prefix}.${key}` : key;
+
+    if (typeof value === "string") {
+      flattened[newKey] = value;
+    } else if (typeof value === "object" && value !== null) {
+      Object.assign(flattened, flattenErrors(value, newKey));
+    }
+  }
+
+  return flattened;
+}
+
+export default { validators, validationMessages, validate, transformBackendErrors, handleBackendValidationError, flattenErrors };

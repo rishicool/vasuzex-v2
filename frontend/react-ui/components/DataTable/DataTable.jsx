@@ -174,7 +174,7 @@ export function DataTable(props) {
   return (
     <div className="overflow-x-auto w-full">
       {/* Filters and Controls */}
-      <div className="mb-6 overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
+      <div className="mb-6 overflow-x-scroll rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
         <div className="border-b border-gray-100 p-3 dark:border-white/[0.05]">
           <Filters
             statusFilter={statusFilter}

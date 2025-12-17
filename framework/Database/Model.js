@@ -169,6 +169,7 @@ export class Model extends GuruORMModel {
 
   /**
    * Get attribute with accessor support
+   * Uses GuruORM's getAttribute - no lazy loading experiments
    */
   getAttribute(key) {
     // Check if accessor exists (getXxxAttribute method)
@@ -177,7 +178,7 @@ export class Model extends GuruORMModel {
       return this[accessor](this.attributes[key]);
     }
 
-    // Check if relation exists
+    // Check if relation is already loaded
     if (this.relations[key] !== undefined) {
       return this.relations[key];
     }
