@@ -105,7 +105,7 @@
     "express": "^5.2.1",
     "express-rate-limit": "^8.2.1",
     "fs-extra": "^11.3.2",
-    "guruorm": "^2.0.2",
+    "guruorm": "^2.0.4",
     "helmet": "^8.1.0",
     "inquirer": "^9.3.8",
     "ip2location-nodejs": "^9.7.0",
@@ -153,7 +153,8 @@
     "overrides": {
       "express": "^5.2.1",
       "react": "^18.2.0",
-      "vue": "^3.4.0"
+      "vue": "^3.4.0",
+      "guruorm": "link:../GuruORM"
     }
   },
   "repository": {

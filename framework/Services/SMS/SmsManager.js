@@ -12,7 +12,7 @@
  * // Send SMS
  * await sms.send({
  *   to: '+919876543210',
- *   message: 'Hello from Neastore!'
+ *   message: 'Hello from neasto!'
  * });
  * 
  * // Use specific driver

@@ -9,11 +9,11 @@
  * import { ConfigRepository } from 'vasuzex-framework';
  * 
  * const config = new ConfigRepository({
- *   'app.name': 'Neastore',
+ *   'app.name': 'neasto',
  *   'database.host': 'localhost'
  * });
  * 
- * config.get('app.name'); // 'Neastore'
+ * config.get('app.name'); // 'neasto'
  * config.get('database.connection.host', 'localhost'); // with fallback
  * config.set('app.debug', true);
  * config.has('database.host'); // true

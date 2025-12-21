@@ -62,6 +62,6 @@ module.exports = {
   */
   from: {
     address: env('MAIL_FROM_ADDRESS', 'noreply@example.com'),
-    name: env('MAIL_FROM_NAME', 'Neastore'),
+    name: env('MAIL_FROM_NAME', 'neasto'),
   },
 };

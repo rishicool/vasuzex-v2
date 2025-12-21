@@ -42,24 +42,25 @@ export class Model extends GuruORMModel {
   // Logger instance (set by application)
   static logger = null;
 
-  // Instance properties
+  // Instance properties  
+  // NOTE: Do NOT initialize object/array properties here as class fields!
+  // Class field initialization creates SHARED references between all instances.
+  // These are properly initialized in the constructor chain (GuruORM parent).
+  // Only primitive values (boolean, number, string) are safe to initialize here.
   exists = false;
   wasRecentlyCreated = false;
   isDirtyFlag = false;
-  original = {};
-  attributes = {};
-  relations = {};
   isHydrating = false;
-  pendingMutators = [];
+  // original, attributes, relations, pendingMutators are initialized in parent constructor
 
   /**
    * Constructor
    */
   constructor(attributes = {}) {
-    super();
-    this.bootIfNotBooted();
-    this.syncOriginal();
-    this.fill(attributes);
+    super(attributes); // GuruORM handles: syncOriginal(), fill(), bootIfNotBooted()
+    
+    // Initialize instance-specific arrays/objects that aren't in parent
+    this.pendingMutators = [];
   }
 
   /**
@@ -385,16 +386,15 @@ export class Model extends GuruORMModel {
     delete attributes.original;  // Remove original tracking
     delete attributes.relations;  // Remove relations (handled separately)
     
-    // Use query builder - GuruORM's query() already has table attached
     // Use insertGetId() to automatically get the inserted ID with RETURNING clause
     const pk = this.constructor.primaryKey || 'id';
     
     const insertedId = await this.constructor
       .query()
-      .insertGetId(attributes);
+      .insertGetId(attributes, pk);
 
-    // Set primary key if auto-incrementing
-    if (this.constructor.incrementing !== false && insertedId) {
+    // Set primary key if returned (works for both auto-increment and UUID)
+    if (insertedId) {
       this.setAttribute(pk, insertedId);
     }
 

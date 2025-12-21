@@ -88,7 +88,7 @@ logger.debug('Component mounted', { props });
 - Context serialization
 - Development-only info/debug logs
 - Always-on error logs
-- Prefix: `[Neastore]`
+- Prefix: `[neasto]`
 
 **Methods:**
 - `logger.info(message, context)` - Development only

@@ -213,7 +213,7 @@ export function clearConfigCache() {
 function getFallbackConfig() {
     return {
         branding: {
-            appName: 'Neastore',
+            appName: 'neasto',
             appVersion: '1.0.0',
             tagline: 'Your Neighborhood Store',
         },

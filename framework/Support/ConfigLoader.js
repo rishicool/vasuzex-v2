@@ -2,7 +2,7 @@
  * ConfigLoader - Generic configuration loader for ES modules
  * 
  * Provides a reusable way to load CommonJS config files and .env files
- * from any Node.js project (not specific to Neastore).
+ * from any Node.js project (not specific to neasto).
  * 
  * @example
  * // In your app

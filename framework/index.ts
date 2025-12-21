@@ -1,5 +1,5 @@
 /**
- * Neastore Framework
+ * neasto Framework
  * Laravel-inspired framework for Node.js monorepos
  */
 

@@ -21,7 +21,7 @@ async function example1_basicGetSet() {
   
   // Laravel: Config::set('app.name', 'New Name')
   const config = app.make('config');
-  config.set('app.name', 'Neastore Runtime Update!');
+  config.set('app.name', 'neasto Runtime Update!');
   
   console.log('Updated app name:', app.config('app.name'));
   
@@ -55,7 +55,7 @@ async function example2_nestedConfig() {
     driver: 'mongodb',
     host: 'localhost',
     port: 27017,
-    database: 'neastore'
+    database: 'neasto'
   });
   
   console.log('New MongoDB config:', app.config('database.connections.mongodb'));

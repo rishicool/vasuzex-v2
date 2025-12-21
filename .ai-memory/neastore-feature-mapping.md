@@ -1,4 +1,4 @@
-# NEASTORE PROJECT - AI MEMORY
+# neasto PROJECT - AI MEMORY
 ## Complete Implementation Guide & Architecture Rules
 
 ---
@@ -164,7 +164,7 @@ system_configs table:
   upload.document.allowedTypes = ["image/jpeg", "application/pdf"]
   upload.default = "local" or "s3"
 
-// 2. Project Config (OVERRIDE) - neastore/config/upload.cjs
+// 2. Project Config (OVERRIDE) - neasto/config/upload.cjs
 module.exports = {
   document: {
     maxSize: 5 * 1024 * 1024,
@@ -487,7 +487,7 @@ const googleMapsKey = getConfig('googleMapsKey');
 
 **Architecture**:
 ```
-neastore/apps/customer/web/
+neasto/apps/customer/web/
 ├── src/
 │   ├── lib/
 │   │   ├── config-loader.js      # Fetches from /api/config/app-settings
@@ -515,12 +515,12 @@ neastore/apps/customer/web/
 
 **Key Pattern - API-Driven Config**:
 ```jsx
-// ❌ OLD (neastore-js) - Hardcoded
+// ❌ OLD (neasto-js) - Hardcoded
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const MEDIA_SERVER_URL = import.meta.env.VITE_MEDIA_SERVER_URL;
 const GOOGLE_MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY;
 
-// ✅ NEW (neastore) - API-driven
+// ✅ NEW (neasto) - API-driven
 const { config } = useAppConfig();
 const apiUrl = config.apiUrl;
 const mediaUrl = config.mediaUrl;
@@ -552,7 +552,7 @@ const googleMapsKey = config.googleMapsKey;
 
 ## 📦 PACKAGE STRUCTURE COMPARISON
 
-### neastore-js/packages Structure:
+### neasto-js/packages Structure:
 ```
 packages/
 ├── config/          - Centralized config management
@@ -575,11 +575,11 @@ framework/
 
 ---
 
-## 🎯 FEATURE MAPPING (neastore-js → vasuzex-v2)
+## 🎯 FEATURE MAPPING (neasto-js → vasuzex-v2)
 
 ### 1. STORAGE & UPLOAD SERVICES
 
-#### neastore-js:
+#### neasto-js:
 ```javascript
 // packages/utils/src/upload/
 - storage.service.js         → StorageService class
@@ -622,7 +622,7 @@ framework/
 
 ### 2. IMAGE & THUMBNAIL SERVICES
 
-#### neastore-js:
+#### neasto-js:
 ```javascript
 // packages/utils/src/image/
 - thumbnail.service.js        → ThumbnailService class
@@ -648,7 +648,7 @@ framework/
 
 ## 📦 PACKAGE STRUCTURE COMPARISON
 
-### neastore-js/packages Structure:
+### neasto-js/packages Structure:
 ```
 packages/
 ├── config/          - Centralized config management
@@ -671,11 +671,11 @@ framework/
 
 ---
 
-## 🎯 FEATURE MAPPING (neastore-js → vasuzex-v2)
+## 🎯 FEATURE MAPPING (neasto-js → vasuzex-v2)
 
 ### 1. STORAGE & UPLOAD SERVICES
 
-#### neastore-js:
+#### neasto-js:
 ```javascript
 // packages/utils/src/upload/
 - storage.service.js         → StorageService class
@@ -718,7 +718,7 @@ framework/
 
 ### 2. IMAGE & THUMBNAIL SERVICES
 
-#### neastore-js:
+#### neasto-js:
 ```javascript
 // packages/utils/src/image/
 - thumbnail.service.js        → ThumbnailService class
@@ -766,7 +766,7 @@ framework/
 
 ### 3. EMAIL SERVICES
 
-#### neastore-js:
+#### neasto-js:
 ```javascript
 // packages/utils/src/email-service/
 - email.service.js            → EmailService
@@ -793,7 +793,7 @@ framework/
 
 ### 4. SMS SERVICES
 
-#### neastore-js:
+#### neasto-js:
 ```javascript
 // packages/utils/src/sms-service/
 - sms.service.js              → SMS sending
@@ -818,7 +818,7 @@ framework/
 
 ### 5. PAYMENT SERVICES
 
-#### neastore-js:
+#### neasto-js:
 ```javascript
 // packages/utils/src/phonepe-service/
 - phonepe.service.js          → PhonePe integration
@@ -846,7 +846,7 @@ framework/
 
 ### 6. GEOIP SERVICES
 
-#### neastore-js:
+#### neasto-js:
 ```javascript
 // packages/utils/src/geoip-service/
 - index.js                    → GeoIP lookup
@@ -867,7 +867,7 @@ framework/
 
 ### 7. UTILITY HELPERS
 
-#### neastore-js:
+#### neasto-js:
 ```javascript
 // packages/utils/src/index.js
 export const maskPhone = (phone) => {...}
@@ -893,7 +893,7 @@ export const logger = {...}
 
 ### 8. CONFIG MANAGEMENT
 
-#### neastore-js:
+#### neasto-js:
 ```javascript
 // packages/config/src/
 - Centralized config
@@ -921,7 +921,7 @@ export const logger = {...}
 
 ### 9. STOCK MANAGEMENT
 
-#### neastore-js:
+#### neasto-js:
 ```javascript
 // packages/utils/src/stock-service/
 - stock.service.js            → Stock management
@@ -936,7 +936,7 @@ export const logger = {...}
 
 ---
 
-## 🎨 ADDITIONAL VASUZEX-V2 FEATURES (NOT IN NEASTORE-JS)
+## 🎨 ADDITIONAL VASUZEX-V2 FEATURES (NOT IN neasto-JS)
 
 ### Extra Services Available:
 ```javascript
@@ -962,7 +962,7 @@ export const logger = {...}
 
 ## 📊 COMPARISON SUMMARY
 
-| Feature | neastore-js | vasuzex-v2 | Status |
+| Feature | neasto-js | vasuzex-v2 | Status |
 |---------|-------------|------------|--------|
 | **Storage (Local/S3)** | ✅ | ✅ | EQUIVALENT |
 | **File Upload** | ✅ | ✅ | EQUIVALENT |
@@ -986,7 +986,7 @@ export const logger = {...}
 
 ---
 
-## 🚀 IMPLEMENTATION STRATEGY FOR NEASTORE
+## 🚀 IMPLEMENTATION STRATEGY FOR neasto
 
 ### Phase 1: Media Server (PRIORITY)
 Since MediaManager in vasuzex-v2 already has ALL features:
@@ -1012,7 +1012,7 @@ Only need to add:
 
 ## 💡 KEY INSIGHTS
 
-1. **Vasuzex-v2 is MORE feature-rich** than neastore-js packages
+1. **Vasuzex-v2 is MORE feature-rich** than neasto-js packages
 2. **MediaManager = ThumbnailService + ThumbnailCache** (combined)
 3. **All payment gateways available** (PhonePe, Razorpay, Stripe)
 4. **All communication services available** (Email, SMS)
@@ -1023,7 +1023,7 @@ Only need to add:
 
 ## ✅ CONCLUSION
 
-**Vasuzex-v2 framework contains ALL features from neastore-js/packages PLUS MORE.**
+**Vasuzex-v2 framework contains ALL features from neasto-js/packages PLUS MORE.**
 
 The only "missing" feature is **StockService**, which is business-specific logic, not a framework feature.
 
@@ -1032,7 +1032,7 @@ The only "missing" feature is **StockService**, which is business-specific logic
 ---
 
 **Last Updated**: December 9, 2025
-**Project**: neastore (Vasuzex V2)
+**Project**: neasto (Vasuzex V2)
 
 ---
 

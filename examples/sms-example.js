@@ -41,7 +41,7 @@ async function example1_BasicSending() {
   try {
     const result = await SMS.send({
       to: '+919876543210',
-      message: 'Hello from Neastore Framework! 🚀'
+      message: 'Hello from neasto Framework! 🚀'
     });
 
     console.log('✅ SMS sent successfully!');
@@ -65,7 +65,7 @@ async function example2_SendOTP() {
     const otp = randomInt(100000, 999999).toString();
     
     const result = await SMS.sendOtp('+919876543210', otp, {
-      appName: 'Neastore',
+      appName: 'neasto',
       expiryMinutes: 10
     });
 
@@ -181,7 +181,7 @@ async function example5_BulkSending() {
   try {
     const messages = users.map(user => ({
       to: user.phone,
-      message: `Hello ${user.name}! Welcome to Neastore.`
+      message: `Hello ${user.name}! Welcome to neasto.`
     }));
 
     console.log(`📤 Sending ${messages.length} messages...`);

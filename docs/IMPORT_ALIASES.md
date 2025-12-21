@@ -345,7 +345,7 @@ use Illuminate\Support\Facades\Cache;
 use App\Models\Post;
 ```
 
-Neastore:
+neasto:
 ```javascript
 import { DB, Cache } from 'vasuzex';
 import { Post } from '#models';
