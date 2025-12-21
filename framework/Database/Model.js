@@ -319,6 +319,11 @@ export class Model extends GuruORMModel {
    */
   async save() {
     try {
+      // Ensure pendingMutators is initialized (safety check)
+      if (!this.pendingMutators) {
+        this.pendingMutators = [];
+      }
+      
       // Resolve any pending async mutators first
       if (this.pendingMutators.length > 0) {
         await Promise.all(this.pendingMutators);
