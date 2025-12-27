@@ -108,7 +108,7 @@ export class BaseApp extends Application {
             origin: this.corsOrigin,
             credentials: true,
             methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-            allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+            allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'X-Device-ID'],
             exposedHeaders: ['X-Total-Count', 'X-Page-Count'],
             maxAge: 86400,
             preflightContinue: false,

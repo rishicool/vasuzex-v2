@@ -147,7 +147,9 @@ export function createDeleteClickHandler(
       }
 
       // Perform delete operation
-      const url = deleteUrl.replace(":id", row[resourceIdField]);
+      const url = typeof deleteUrl === "function" 
+        ? deleteUrl(row) 
+        : deleteUrl.replace(":id", row[resourceIdField]);
       await api.delete(url);
 
       // Show success message

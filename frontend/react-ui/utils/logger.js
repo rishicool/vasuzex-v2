@@ -32,7 +32,7 @@ export const logger = {
    * @param {string} message - Warning message
    * @param {any} [context] - Additional context
    */
-  warning: (message, context) => {
+  warn: (message, context) => {
     if (isDevelopment) {
       console.warn(`[App] ${message}`, context || '');
     }

@@ -275,7 +275,7 @@ export const AutocompleteWithImage = memo(function AutocompleteWithImage({
           className={`h-11 w-full rounded-lg border px-4 py-2.5 text-sm shadow-theme-xs transition-colors focus:outline-none focus:ring-3 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-900 dark:text-white/90 ${
             error
               ? 'border-red-500 focus:border-red-300 focus:ring-red-500/20 dark:border-red-500'
-              : 'border-gray-300 focus:border-brand-300 focus:ring-brand-500/20 dark:border-gray-700 dark:focus:border-brand-800'
+              : 'border-gray-300 focus:border-blue-300 focus:ring-blue-500/20 dark:border-gray-700 dark:focus:border-blue-800'
           }`}
           role="combobox"
           aria-autocomplete="list"
@@ -287,23 +287,12 @@ export const AutocompleteWithImage = memo(function AutocompleteWithImage({
         />
         {loading && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-brand-500"></div>
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-500"></div>
           </div>
         )}
       </div>
       
       {isOpen && (
-        <>
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 z-10"
-            onClick={() => {
-              setIsOpen(false);
-              setInputValue('');
-            }}
-          />
-          
-          {/* Dropdown */}
           <ul
             ref={listRef}
             id={`${id}-listbox`}
@@ -329,10 +318,15 @@ export const AutocompleteWithImage = memo(function AutocompleteWithImage({
                     id={`${id}-option-${index}`}
                     className={`cursor-pointer px-3 py-2 transition-colors ${
                       isHighlighted
-                        ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300'
+                        ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
                         : 'text-gray-900 hover:bg-gray-50 dark:text-white dark:hover:bg-gray-700'
                     }`}
-                    onClick={() => handleSelectOption(option)}
+                    onMouseDown={(e) => {
+                      console.log('[AutocompleteWithImage] List item mouseDown:', option.label);
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleSelectOption(option);
+                    }}
                     onMouseEnter={() => setHighlightedIndex(index)}
                     role="option"
                     aria-selected={isSelected}
@@ -373,7 +367,7 @@ export const AutocompleteWithImage = memo(function AutocompleteWithImage({
               })
             )}
           </ul>
-        </>
+
       )}
     </div>
   );

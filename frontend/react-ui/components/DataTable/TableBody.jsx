@@ -53,7 +53,7 @@ export function TableBody({
       {data.map((row, idx) => (
         <tr
           key={row[resourceIdField] ?? row.id ?? row._id ?? idx}
-          className="border-b border-gray-200 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700"
+          className="border-b border-gray-200 dark:border-gray-700"
         >
           {/* Render Columns */}
           {columns.map((col) => (
