@@ -118,7 +118,9 @@ export function DataTable(props) {
         if (value) params.append(`columnSearch[${field}]`, value);
       });
 
-      const result = await api.get(`${apiUrl}?${params}`);
+      // Properly append params to apiUrl (check if apiUrl already has query params)
+      const separator = apiUrl.includes('?') ? '&' : '?';
+      const result = await api.get(`${apiUrl}${separator}${params}`);
 
       // Handle nested data structure: result.data.data OR result.data.items
       const items = Array.isArray(result.data)

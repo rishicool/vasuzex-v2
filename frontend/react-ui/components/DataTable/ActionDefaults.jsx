@@ -40,6 +40,11 @@ export const ACTION_DEFAULTS = {
     label: "",
     title: "Toggle Status",
   },
+  custom: {
+    type: "button",
+    label: "Custom Action",
+    title: "Custom Action",
+  },
 };
 
 /**

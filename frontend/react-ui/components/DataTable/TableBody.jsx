@@ -58,15 +58,15 @@ export function TableBody({
           {/* Render Columns */}
           {columns.map((col) => (
             <td key={col.field} className={col.className || "px-6 py-4"}>
-              {col.field === "status" && onStatusToggle ? (
+              {col.render ? (
+                col.render(row)
+              ) : col.field === "status" && onStatusToggle ? (
                 <Switch
                   checked={row.is_active ?? row.isActive ?? row.status === "active"}
                   onChange={() => onStatusToggle(row)}
                   className="react-switch-status"
                   id={`switch-status-${row[resourceIdField] ?? row.id ?? row._id ?? idx}`}
                 />
-              ) : col.render ? (
-                col.render(row)
               ) : (
                 row[col.field]
               )}
@@ -78,6 +78,11 @@ export function TableBody({
             <td className="px-6 py-4 text-right">
               <div className="flex items-center justify-end gap-2">
                 {actions.map((userAction, actionIdx) => {
+                  // Check visibility first
+                  if (userAction.isVisible && !userAction.isVisible(row)) {
+                    return null;
+                  }
+
                   // Apply defaults based on action name
                   const action = applyActionDefaults(userAction, resourceName, resourceIdField);
 

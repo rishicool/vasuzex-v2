@@ -296,7 +296,11 @@ export const AutocompleteWithImage = memo(function AutocompleteWithImage({
           <ul
             ref={listRef}
             id={`${id}-listbox`}
-            className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800"
+            className="absolute z-20 mt-1 max-h-60 w-full overflow-y-auto overflow-x-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800"
+            style={{
+              scrollBehavior: 'smooth',
+              WebkitOverflowScrolling: 'touch',
+            }}
             role="listbox"
           >
             {filteredOptions.length === 0 ? (
