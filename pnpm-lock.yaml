@@ -50,6 +50,9 @@ importers:
       csrf-csrf:
         specifier: ^4.0.3
         version: 4.0.3
+      currency.js:
+        specifier: 2.0.4
+        version: 2.0.4
       dotenv:
         specifier: ^16.6.1
         version: 16.6.1
@@ -1905,6 +1908,10 @@ packages:
     resolution: {integrity: sha512-fgKbp+AJbn1h2dcAHKIdKNSSjfp43BZZykXsCjzALjKy80VXQNHPFJ6T9Afwdzoj24aMkq8GwDS7KGcDPpejrA==}
     engines: {node: '>= 10'}
     hasBin: true
+
+  currency.js@2.0.4:
+    resolution: {integrity: sha512-6/OplJYgJ0RUlli74d93HJ/OsKVBi8lB1+Z6eJYS1YZzBuIp4qKKHpJ7ad+GvTlWmLR/hLJOWTykN5Nm8NJ7+w==}
+    engines: {node: '>=4'}
 
   debug@4.4.3:
     resolution: {integrity: sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==}
@@ -6228,6 +6235,8 @@ snapshots:
   csstype@3.2.3: {}
 
   csv-parser@3.2.0: {}
+
+  currency.js@2.0.4: {}
 
   debug@4.4.3(supports-color@5.5.0):
     dependencies:

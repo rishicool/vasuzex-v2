@@ -515,7 +515,7 @@ neasto/apps/customer/web/
 
 **Key Pattern - API-Driven Config**:
 ```jsx
-// ❌ OLD (neasto-js) - Hardcoded
+// ❌ OLD (neasto) - Hardcoded
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const MEDIA_SERVER_URL = import.meta.env.VITE_MEDIA_SERVER_URL;
 const GOOGLE_MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY;
@@ -552,7 +552,7 @@ const googleMapsKey = config.googleMapsKey;
 
 ## 📦 PACKAGE STRUCTURE COMPARISON
 
-### neasto-js/packages Structure:
+### neasto/packages Structure:
 ```
 packages/
 ├── config/          - Centralized config management
@@ -575,11 +575,11 @@ framework/
 
 ---
 
-## 🎯 FEATURE MAPPING (neasto-js → vasuzex-v2)
+## 🎯 FEATURE MAPPING (neasto → vasuzex-v2)
 
 ### 1. STORAGE & UPLOAD SERVICES
 
-#### neasto-js:
+#### neasto:
 ```javascript
 // packages/utils/src/upload/
 - storage.service.js         → StorageService class
@@ -622,7 +622,7 @@ framework/
 
 ### 2. IMAGE & THUMBNAIL SERVICES
 
-#### neasto-js:
+#### neasto:
 ```javascript
 // packages/utils/src/image/
 - thumbnail.service.js        → ThumbnailService class
@@ -648,7 +648,7 @@ framework/
 
 ## 📦 PACKAGE STRUCTURE COMPARISON
 
-### neasto-js/packages Structure:
+### neasto/packages Structure:
 ```
 packages/
 ├── config/          - Centralized config management
@@ -671,11 +671,11 @@ framework/
 
 ---
 
-## 🎯 FEATURE MAPPING (neasto-js → vasuzex-v2)
+## 🎯 FEATURE MAPPING (neasto → vasuzex-v2)
 
 ### 1. STORAGE & UPLOAD SERVICES
 
-#### neasto-js:
+#### neasto:
 ```javascript
 // packages/utils/src/upload/
 - storage.service.js         → StorageService class
@@ -718,7 +718,7 @@ framework/
 
 ### 2. IMAGE & THUMBNAIL SERVICES
 
-#### neasto-js:
+#### neasto:
 ```javascript
 // packages/utils/src/image/
 - thumbnail.service.js        → ThumbnailService class
@@ -766,7 +766,7 @@ framework/
 
 ### 3. EMAIL SERVICES
 
-#### neasto-js:
+#### neasto:
 ```javascript
 // packages/utils/src/email-service/
 - email.service.js            → EmailService
@@ -793,7 +793,7 @@ framework/
 
 ### 4. SMS SERVICES
 
-#### neasto-js:
+#### neasto:
 ```javascript
 // packages/utils/src/sms-service/
 - sms.service.js              → SMS sending
@@ -818,7 +818,7 @@ framework/
 
 ### 5. PAYMENT SERVICES
 
-#### neasto-js:
+#### neasto:
 ```javascript
 // packages/utils/src/phonepe-service/
 - phonepe.service.js          → PhonePe integration
@@ -846,7 +846,7 @@ framework/
 
 ### 6. GEOIP SERVICES
 
-#### neasto-js:
+#### neasto:
 ```javascript
 // packages/utils/src/geoip-service/
 - index.js                    → GeoIP lookup
@@ -867,7 +867,7 @@ framework/
 
 ### 7. UTILITY HELPERS
 
-#### neasto-js:
+#### neasto:
 ```javascript
 // packages/utils/src/index.js
 export const maskPhone = (phone) => {...}
@@ -893,7 +893,7 @@ export const logger = {...}
 
 ### 8. CONFIG MANAGEMENT
 
-#### neasto-js:
+#### neasto:
 ```javascript
 // packages/config/src/
 - Centralized config
@@ -921,7 +921,7 @@ export const logger = {...}
 
 ### 9. STOCK MANAGEMENT
 
-#### neasto-js:
+#### neasto:
 ```javascript
 // packages/utils/src/stock-service/
 - stock.service.js            → Stock management
@@ -936,7 +936,7 @@ export const logger = {...}
 
 ---
 
-## 🎨 ADDITIONAL VASUZEX-V2 FEATURES (NOT IN neasto-JS)
+## 🎨 ADDITIONAL VASUZEX-V2 FEATURES (NOT IN neasto)
 
 ### Extra Services Available:
 ```javascript
@@ -962,7 +962,7 @@ export const logger = {...}
 
 ## 📊 COMPARISON SUMMARY
 
-| Feature | neasto-js | vasuzex-v2 | Status |
+| Feature | neasto | vasuzex-v2 | Status |
 |---------|-------------|------------|--------|
 | **Storage (Local/S3)** | ✅ | ✅ | EQUIVALENT |
 | **File Upload** | ✅ | ✅ | EQUIVALENT |
@@ -1012,7 +1012,7 @@ Only need to add:
 
 ## 💡 KEY INSIGHTS
 
-1. **Vasuzex-v2 is MORE feature-rich** than neasto-js packages
+1. **Vasuzex-v2 is MORE feature-rich** than neasto packages
 2. **MediaManager = ThumbnailService + ThumbnailCache** (combined)
 3. **All payment gateways available** (PhonePe, Razorpay, Stripe)
 4. **All communication services available** (Email, SMS)
@@ -1023,7 +1023,7 @@ Only need to add:
 
 ## ✅ CONCLUSION
 
-**Vasuzex-v2 framework contains ALL features from neasto-js/packages PLUS MORE.**
+**Vasuzex-v2 framework contains ALL features from neasto/packages PLUS MORE.**
 
 The only "missing" feature is **StockService**, which is business-specific logic, not a framework feature.
 

@@ -9,6 +9,7 @@ export class BaseServer {
     this.projectRoot = options.projectRoot || process.cwd();
     this.port = options.port || process.env.APP_PORT || 3000;
     this.app = null;
+    this.host = options.host || process.env.APP_HOST || 'localhost';
     this.server = null;
   }
 
@@ -65,8 +66,8 @@ export class BaseServer {
         : (this.app.getExpress ? this.app.getExpress() : this.app);
       
       return new Promise((resolve) => {
-        this.server = express.listen(this.port, () => {
-          console.log(`🚀 ${this.appName} running on http://localhost:${this.port}`);
+        this.server = express.listen(this.port, this.host, () => {
+          console.log(`🚀 ${this.appName} running on http://${this.host}:${this.port}`);
           resolve(this.server);
         });
       });
