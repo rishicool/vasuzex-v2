@@ -1,4 +1,32 @@
-import { NotFoundError } from '../Exceptions/index.js';
+import { NotFoundError, ValidationError } from '../Exceptions/index.js';
+import { Log } from '../Support/Facades/index.js';
+
+/**
+ * Validator class - static methods for validation
+ * Avoiding Facade to prevent container binding issues
+ */
+class ValidatorClass {
+  static validate(data, schema) {
+    const result = schema.validate(data, {
+      abortEarly: false,
+      stripUnknown: true,
+    });
+
+    if (result.error) {
+      const errors = result.error.details.reduce((acc, detail) => {
+        const key = detail.path.join('.');
+        acc[key] = detail.message;
+        return acc;
+      }, {});
+
+      return { error: errors, value: null };
+    }
+
+    return { error: null, value: result.value };
+  }
+}
+
+const Validator = ValidatorClass;
 
 /**
  * BaseService - Base service layer class
@@ -20,6 +48,38 @@ export class BaseService {
     this.defaultPerPage = 15;
     this.maxPerPage = 100;
     this.request = null; // Will be set from controller
+  }
+
+  /**
+   * Parse columnSearch[field]=value from query params
+   * @param {Object} queryParams - Request query parameters
+   * @returns {Object} Column search object
+   */
+  getColumnSearch(queryParams) {
+    const result = {};
+    if (queryParams.columnSearch && typeof queryParams.columnSearch === 'object') {
+      return queryParams.columnSearch;
+    }
+    for (const key in queryParams) {
+      const match = key.match(/^columnSearch\[(.+)\]$/);
+      if (match) result[match[1]] = queryParams[key];
+    }
+    return result;
+  }
+
+  /**
+   * Validate UUID format
+   * @param {String} id - UUID to validate
+   * @param {String} fieldName - Field name for error message
+   * @throws {ValidationError} If invalid UUID
+   */
+  validateUUID(id, fieldName = 'ID') {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!id || !uuidRegex.test(id)) {
+      const field = fieldName.toLowerCase().replace(/ /g, '');
+      const errors = { [field]: `Invalid ${fieldName}: must be a valid UUID` };
+      throw new ValidationError(errors, `Invalid ${fieldName}: must be a valid UUID`);
+    }
   }
 
   /**
@@ -117,7 +177,175 @@ export class BaseService {
   }
 
   /**
+   * Advanced list method with comprehensive features
+   * Handles pagination, sorting, searching, filtering, relation joins, aggregates
+   * Single source of truth for all datatable/list operations
+   * 
+   * @param {Object} Model - GuruORM Model class
+   * @param {Object} options - Query options
+   * @returns {Promise<Object>} Paginated results with data and pagination meta
+   */
+  async getList(Model, options = {}) {
+    const {
+      page = 1,
+      limit = 20,
+      search = '',
+      columnSearch = {},
+      sortBy = 'id',
+      sortOrder = 'asc',
+      searchFields = [],      // Fields for global search
+      numericFields = [],     // Fields that are numeric (need CAST for ILIKE)
+      columnFields = {},      // Fields for column search
+      sortableFields = {},    // Whitelist of allowed sort columns with mapping
+      nullableColumns = [],   // Columns that may have NULL values and should use NULLS LAST/FIRST
+      relationJoins = {},     // Relations to join for sorting: { 'user.name': { relation: 'user', foreignKey: 'user_id', table: 'users' } }
+      filters = null,         // Custom filters function
+      relations = [],         // Relations to load
+      withAggregates = {}     // Relationship aggregates: { avg: [['ratings', 'rating']], count: ['orders'], sum: [['sales', 'amount']] }
+    } = options;
+
+    let query = Model.query();
+    const modelTable = Model.table;
+    const hasRelationJoin = !!relationJoins[sortBy];
+
+    // Join relations EARLY if sorting by a relation column
+    if (hasRelationJoin) {
+      const joinConfig = relationJoins[sortBy];
+      
+      // Apply join
+      query = query.leftJoin(
+        joinConfig.table,
+        `${modelTable}.${joinConfig.foreignKey}`,
+        '=',
+        `${joinConfig.table}.id`
+      );
+      
+      // Select all columns from main table to avoid conflicts
+      query = query.select(`${modelTable}.*`);
+    }
+
+    // Apply relationship aggregates (withAvg, withCount, withSum, withMin, withMax)
+    if (withAggregates) {
+      if (withAggregates.avg) {
+        for (const [relation, column] of withAggregates.avg) {
+          query = query.withAvg(relation, column);
+        }
+      }
+      if (withAggregates.count) {
+        for (const relation of withAggregates.count) {
+          query = query.withCount(relation);
+        }
+      }
+      if (withAggregates.sum) {
+        for (const [relation, column] of withAggregates.sum) {
+          query = query.withSum(relation, column);
+        }
+      }
+      if (withAggregates.min) {
+        for (const [relation, column] of withAggregates.min) {
+          query = query.withMin(relation, column);
+        }
+      }
+      if (withAggregates.max) {
+        for (const [relation, column] of withAggregates.max) {
+          query = query.withMax(relation, column);
+        }
+      }
+    }
+
+    // Load relations
+    if (relations.length > 0) query = query.with(relations);
+
+    // Helper to qualify column names when relation joins are active
+    const qualifyColumn = (col) => hasRelationJoin ? `${modelTable}.${col}` : col;
+
+    // Global search (search across multiple fields)
+    if (search && searchFields.length > 0) {
+      query = query.where((q) => {
+        searchFields.forEach((field, i) => {
+          const qualifiedField = qualifyColumn(field);
+          // Check if field is numeric - cast to text for pattern matching
+          const isNumeric = numericFields.includes(field);
+          
+          if (isNumeric) {
+            // For numeric fields, cast to text for ILIKE search
+            const condition = i === 0 ? 'whereRaw' : 'orWhereRaw';
+            q[condition](`CAST(${qualifiedField} AS TEXT) ILIKE ?`, [`%${search}%`]);
+          } else {
+            // For text fields, use normal ILIKE
+            i === 0 ? q.where(qualifiedField, 'ILIKE', `%${search}%`) : q.orWhere(qualifiedField, 'ILIKE', `%${search}%`);
+          }
+        });
+      });
+    }
+
+    // Column search (search individual columns - only direct fields)
+    if (columnSearch && Object.keys(columnSearch).length > 0) {
+      Object.entries(columnSearch).forEach(([col, val]) => {
+        if (val && columnFields[col]) {
+          const dbColumn = columnFields[col];
+          const qualifiedColumn = qualifyColumn(dbColumn);
+          const isNumeric = numericFields.includes(dbColumn);
+          
+          if (isNumeric) {
+            // For numeric fields, cast to text for ILIKE search
+            query = query.whereRaw(`CAST(${qualifiedColumn} AS TEXT) ILIKE ?`, [`%${val}%`]);
+          } else {
+            // For text fields, use normal ILIKE
+            query = query.where(qualifiedColumn, 'ILIKE', `%${val}%`);
+          }
+        }
+      });
+    }
+
+    // Custom filters (handle complex logic like relation searches here)
+    // Pass modelTable when relation joins are active so filters can qualify WHERE clauses
+    if (filters) query = filters(query, columnSearch, hasRelationJoin ? modelTable : null);
+
+    // Validate and map sortBy column
+    let validatedSortBy = sortBy;
+    if (sortableFields && Object.keys(sortableFields).length > 0) {
+      // Check if sortBy is in whitelist
+      if (sortableFields[sortBy]) {
+        validatedSortBy = sortableFields[sortBy];
+      } else {
+        // Invalid sort column - use default
+        validatedSortBy = sortableFields[Object.keys(sortableFields)[0]] || 'id';
+        this.log('Invalid sortBy parameter', { 
+          provided: sortBy, 
+          using: validatedSortBy,
+          allowed: Object.keys(sortableFields) 
+        });
+      }
+    }
+
+    // Sort query with NULL handling
+    // For nullable columns (like aggregates), use NULLS LAST for DESC, NULLS FIRST for ASC
+    if (nullableColumns.includes(validatedSortBy)) {
+      const direction = sortOrder.toLowerCase();
+      const nullsPosition = direction === 'desc' ? 'NULLS LAST' : 'NULLS FIRST';
+      query = query.orderByRaw(`"${validatedSortBy}" ${direction.toUpperCase()} ${nullsPosition}`);
+    } else {
+      query = query.orderBy(validatedSortBy, sortOrder.toLowerCase());
+    }
+    
+    // Use GuruORM's paginate (fixed in v2.0.2+ to properly handle eager loading)
+    const result = await query.paginate(limit, page);
+
+    return {
+      data: result.data,
+      pagination: {
+        page: result.currentPage,
+        limit: result.perPage,
+        total: result.total,
+        totalPages: result.lastPage
+      }
+    };
+  }
+
+  /**
    * Find all records with optional filters, sorting, and pagination
+   * Legacy method - consider using getList() for new code
    * 
    * @param {object} options - Query options
    * @returns {Promise<object>} Paginated results
@@ -475,5 +703,85 @@ export class BaseService {
    */
   getModel() {
     return this.model;
+  }
+
+  /**
+   * Helper: parse boolean
+   * @param {any} value - Value to parse
+   * @returns {boolean|undefined} Parsed boolean or undefined
+   */
+  toBool(value) {
+    if (value === undefined || value === null) return undefined;
+    if (typeof value === 'boolean') return value;
+    return value === 'true' || value === '1' || value === 1;
+  }
+
+  /**
+   * Helper: parse integer
+   * @param {any} value - Value to parse
+   * @param {number} defaultValue - Default value if parsing fails
+   * @returns {number} Parsed integer or default
+   */
+  toInt(value, defaultValue = 0) {
+    const parsed = parseInt(value);
+    return isNaN(parsed) ? defaultValue : parsed;
+  }
+
+  /**
+   * Helper: validate required fields
+   * @param {Object} data - Data object
+   * @param {Array<string>} fields - Required field names
+   * @throws {Error} If any required field is missing
+   */
+  checkRequired(data, fields = []) {
+    const missing = fields.filter(f => !data[f]);
+    if (missing.length > 0) {
+      throw new Error(`Missing: ${missing.join(', ')}`);
+    }
+  }
+
+  /**
+   * Helper: log action
+   * @param {string} action - Action description
+   * @param {Object} details - Additional details
+   */
+  log(action, details = {}) {
+    Log.info(`[${this.constructor.name}] ${action}`, details);
+  }
+
+  /**
+   * Helper: log error
+   * @param {string} action - Action description
+   * @param {Error} error - Error object
+   */
+  logError(action, error) {
+    Log.error(`[${this.constructor.name}] ${action}`, {
+      message: error.message,
+      stack: error.stack
+    });
+  }
+
+  /**
+   * Validate data using Joi schema (Vasuzex Validator)
+   * Laravel-style validation: throws ValidationError if validation fails
+   * IMPORTANT: Does NOT transform data, only validates
+   * 
+   * @param {Object} data - Data to validate
+   * @param {Object} schema - Joi schema object
+   * @throws {ValidationError} Validation error with field-specific errors
+   */
+  validate(data, schema) {
+    const { error } = Validator.validate(data, schema);
+    
+    if (error) {
+      // Build descriptive message from error fields
+      const fieldNames = Object.keys(error);
+      const message = `Validation failed: ${fieldNames.join(', ')}`;
+      
+      throw new ValidationError(error, message);
+    }
+    
+    // Validation passed, no return needed
+    // Use original data in your service methods
   }
 }

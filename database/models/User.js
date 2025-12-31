@@ -2,7 +2,7 @@ import Model from 'vasuzex/Database/Model';
 import bcrypt from 'bcrypt';
 
 export class User extends Model {
-  static tableName = 'users';
+  static table = 'users';
   static primaryKey = 'id';
   static timestamps = true;
   static softDeletes = true;

@@ -884,9 +884,13 @@ export class Model extends GuruORMModel {
   static query() {
     let query = super.query();
 
-    // Apply soft deletes global scope
+    // Apply soft deletes global scope with table qualification
+    // This prevents "column reference is ambiguous" errors when JOINs are present
     if (this.softDeletes && !query._skipSoftDeletes) {
-      query = query.whereNull(this.deletedAt);
+      // Support both 'table' and 'tableName' properties
+      const tableName = this.table || this.tableName;
+      const qualifiedColumn = `${tableName}.${this.deletedAt}`;
+      query = query.whereNull(qualifiedColumn);
     }
 
     // Monkey-patch the update method to add timestamps
