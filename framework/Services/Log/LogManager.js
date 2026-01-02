@@ -207,6 +207,14 @@ export class LogManager {
   }
 
   debug(message, context = {}) {
+    // Only log debug messages when app.debug is enabled (like Laravel)
+    const debugValue = this.app.config('app.debug', false);
+    const isDebug = debugValue === true || debugValue === 'true';
+    
+    if (!isDebug) {
+      return; // Skip debug logs in production
+    }
+    
     return this.channel().debug(message, context);
   }
 

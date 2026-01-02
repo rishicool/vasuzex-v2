@@ -169,8 +169,8 @@ export class Model extends GuruORMModel {
   }
 
   /**
-   * Get attribute with accessor support
-   * Uses GuruORM's getAttribute - no lazy loading experiments
+   * Get attribute with accessor support and lazy loading
+   * Calls GuruORM's getAttribute to get lazy loading support
    */
   getAttribute(key) {
     // Check if accessor exists (getXxxAttribute method)
@@ -179,22 +179,16 @@ export class Model extends GuruORMModel {
       return this[accessor](this.attributes[key]);
     }
 
-    // Check if relation is already loaded
-    if (this.relations[key] !== undefined) {
-      return this.relations[key];
-    }
-
-    // Check if appended
+    // Check if appended (computed attributes)
     if (this.constructor.appends.includes(key)) {
       return this[accessor] ? this[accessor]() : null;
     }
 
-    // Cast attribute for retrieval
-    if (this.constructor.casts[key] && this.attributes[key] !== undefined) {
-      return this.castAttribute(key, this.attributes[key]);
-    }
-
-    return this.attributes[key];
+    // Delegate to GuruORM's getAttribute for:
+    // - Lazy loading of relationships
+    // - Loaded relations
+    // - Attributes with casting
+    return super.getAttribute(key);
   }
 
   /**
