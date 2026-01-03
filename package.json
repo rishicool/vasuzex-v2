@@ -1,6 +1,6 @@
 {
   "name": "vasuzex",
-  "version": "2.1.6",
+  "version": "2.1.7",
   "description": "Laravel-inspired framework for Node.js monorepos - V2 with optimized dependencies",
   "type": "module",
   "main": "./framework/index.js",
@@ -100,7 +100,7 @@
     "chalk": "^4.1.2",
     "commander": "^12.1.0",
     "cors": "^2.8.5",
-    "csrf-csrf": "^4.0.3",    
+    "csrf-csrf": "^4.0.3",
     "currency.js": "^2.0.4",
     "dotenv": "^16.6.1",
     "express": "^5.2.1",
