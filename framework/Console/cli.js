@@ -105,6 +105,7 @@ program
 program
   .command('migrate')
   .description('Run database migrations')
+  .option('--force', 'Force the operation to run in production')
   .action(dbMigrate);
 
 program
@@ -122,6 +123,7 @@ program
   .command('db:seed')
   .description('Seed the database')
   .option('-c, --class <class>', 'Specific seeder class to run')
+  .option('--force', 'Force the operation to run in production')
   .action(dbSeed);
 
 program

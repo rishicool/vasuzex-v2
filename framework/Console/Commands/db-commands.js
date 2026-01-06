@@ -146,7 +146,9 @@ export async function dbMigrate(options = {}) {
   
   try {
     await createDatabase();
-    await runGuruORMCommand('migrate');
+    const args = [];
+    if (options.force) args.push('--force');
+    await runGuruORMCommand('migrate', args);
     console.log('\n✅ Migrations completed successfully!');
   } catch (error) {
     console.error('\n❌ Migration failed:', error.message);
@@ -193,7 +195,9 @@ export async function dbSeed(options = {}) {
   console.log(seeder ? `🌱 Running seeder: ${seeder}...\n` : '🌱 Running all seeders...\n');
   
   try {
-    const args = seeder ? ['--class', seeder] : [];
+    const args = [];
+    if (seeder) args.push('--class', seeder);
+    if (options.force) args.push('--force');
     await runGuruORMCommand('db:seed', args);
     console.log('\n✅ Database seeded successfully!');
   } catch (error) {
