@@ -106,7 +106,7 @@
     "express": "^5.2.1",
     "express-rate-limit": "^8.2.1",
     "fs-extra": "^11.3.2",
-    "guruorm": "^2.0.14",
+    "guruorm": "^2.0.15",
     "helmet": "^8.1.0",
     "inquirer": "^9.3.8",
     "ip2location-nodejs": "^9.7.0",
