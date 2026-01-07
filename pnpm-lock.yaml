@@ -65,8 +65,8 @@ importers:
         specifier: ^11.3.2
         version: 11.3.2
       guruorm:
-        specifier: ^2.0.15
-        version: 2.0.15
+        specifier: ^2.0.16
+        version: 2.0.16
       helmet:
         specifier: ^8.1.0
         version: 8.1.0
@@ -1547,6 +1547,9 @@ packages:
   '@types/node@25.0.2':
     resolution: {integrity: sha512-gWEkeiyYE4vqjON/+Obqcoeffmk0NF15WSBwSs7zwVA2bAbTaE0SJ7P0WNGoJn8uE7fiaV5a7dKYIJriEqOrmA==}
 
+  '@types/node@25.0.3':
+    resolution: {integrity: sha512-W609buLVRVmeW693xKfzHeIV6nJGGz98uCPfeXI1ELMLXVeKYZ9m15fAMSaUPBHYLGFsVRcMmSCksQOrZV9BYA==}
+
   '@types/picomatch@4.0.2':
     resolution: {integrity: sha512-qHHxQ+P9PysNEGbALT8f8YOSHW0KJu6l2xU8DYY0fu/EmGxXdVnuTLvFUvBgPJMSqXq29SYHveejeAha+4AYgA==}
 
@@ -2575,8 +2578,8 @@ packages:
   graceful-fs@4.2.11:
     resolution: {integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==}
 
-  guruorm@2.0.15:
-    resolution: {integrity: sha512-XciJkxdM6Oetdf+kQ8u1AFIQfKHuuZjVwqrqtGK0xnXdVHUDv733kVfszEeScE92lQxhjH0SeDuc1FIhaCMEDw==}
+  guruorm@2.0.16:
+    resolution: {integrity: sha512-WRBVuqXJG0SSn7UfcVyb0WCd1avTL3OVG0yJ/feQC9NDgxSynDbBCyZwEoou9rsS09mDPor4IBC5ZHVO7aokNg==}
     engines: {node: '>=16.0.0'}
     hasBin: true
 
@@ -6373,11 +6376,15 @@ snapshots:
     dependencies:
       undici-types: 7.16.0
 
+  '@types/node@25.0.3':
+    dependencies:
+      undici-types: 7.16.0
+
   '@types/picomatch@4.0.2': {}
 
   '@types/readable-stream@4.0.23':
     dependencies:
-      '@types/node': 25.0.2
+      '@types/node': 25.0.3
 
   '@types/stack-utils@2.0.3': {}
 
@@ -7601,7 +7608,7 @@ snapshots:
 
   graceful-fs@4.2.11: {}
 
-  guruorm@2.0.15:
+  guruorm@2.0.16:
     dependencies:
       '@faker-js/faker': 8.4.1
       chalk: 4.1.2
