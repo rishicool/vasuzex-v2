@@ -1,6 +1,6 @@
 {
   "name": "vasuzex",
-  "version": "2.1.10",
+  "version": "2.1.11",
   "description": "Laravel-inspired framework for Node.js monorepos - V2 with optimized dependencies",
   "type": "module",
   "main": "./framework/index.js",
@@ -154,8 +154,7 @@
     "overrides": {
       "express": "^5.2.1",
       "react": "^18.2.0",
-      "vue": "^3.4.0",
-      "guruorm": "link:../GuruORM"
+      "vue": "^3.4.0"
     }
   },
   "repository": {
