@@ -63,8 +63,10 @@ export function EnhancedPhotoManager({
   description,
   emptyStateText = "No photos uploaded yet",
   maxFiles = 20,
+  maxFileSize = 5 * 1024 * 1024, // 5MB default
   gridCols = "grid-cols-2 sm:grid-cols-3 md:grid-cols-4",
   components = {},
+  dropzoneProps = {},
 }) {
   const {
     photos = [],
@@ -210,6 +212,8 @@ export function EnhancedPhotoManager({
           onFilesSelected={handleFilesSelected}
           disabled={loading}
           maxFiles={maxFiles - sortedPhotos.length}
+          maxSize={dropzoneProps.maxSize || maxFileSize}
+          {...dropzoneProps}
         />
       )}
 
@@ -299,6 +303,8 @@ EnhancedPhotoManager.propTypes = {
   emptyStateText: PropTypes.string,
   /** Maximum number of photos */
   maxFiles: PropTypes.number,
+  /** Maximum file size in bytes (default 5MB) */
+  maxFileSize: PropTypes.number,
   /** Grid columns CSS classes */
   gridCols: PropTypes.string,
   /** Custom components */
@@ -308,6 +314,8 @@ EnhancedPhotoManager.propTypes = {
     UploadProgressCard: PropTypes.elementType,
     TrashIcon: PropTypes.elementType,
   }),
+  /** Additional props to pass to UploadDropZone */
+  dropzoneProps: PropTypes.object,
 };
 
 export default EnhancedPhotoManager;
