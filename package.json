@@ -19,6 +19,7 @@
     "./Support/Facades": "./framework/Support/Facades/index.js",
     "./Support/Facades/*": "./framework/Support/Facades/*.js",
     "./Services/*": "./framework/Services/*/index.js",
+    "./framework/*": "./framework/*",
     "./client": "./frontend/client/index.js",
     "./client/*": "./frontend/client/*/index.js",
     "./react": "./frontend/react-ui/index.js",

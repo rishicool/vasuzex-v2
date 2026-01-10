@@ -6,6 +6,7 @@
 import { MailChannel } from './Channels/MailChannel.js';
 import { SmsChannel } from './Channels/SmsChannel.js';
 import { DatabaseChannel } from './Channels/DatabaseChannel.js';
+import { FcmChannel } from './Channels/FcmChannel.js';
 
 export class NotificationManager {
   constructor(app) {
@@ -123,6 +124,17 @@ export class NotificationManager {
   createDatabaseDriver() {
     const database = this.app.make('db');
     return new DatabaseChannel(database);
+  }
+
+  /**
+   * Create an instance of the FCM driver
+   */
+  createFcmDriver() {
+    // Get token repository from app container
+    const tokenRepository = this.app.has('tokenRepository') 
+      ? this.app.make('tokenRepository')
+      : null;
+    return new FcmChannel(tokenRepository);
   }
 
   /**
