@@ -106,6 +106,7 @@
     "dotenv": "^16.6.1",
     "express": "^5.2.1",
     "express-rate-limit": "^8.2.1",
+    "firebase-admin": "^13.6.0",
     "fs-extra": "^11.3.2",
     "guruorm": "^2.0.16",
     "helmet": "^8.1.0",

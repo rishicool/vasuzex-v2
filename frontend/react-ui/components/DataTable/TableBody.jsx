@@ -136,9 +136,9 @@ export function TableBody({
                   // Get icon, class, title, and content
                   const Icon = action.icon;
                   const className =
-                    typeof action.extraClass === "function"
-                      ? action.extraClass(row)
-                      : action.extraClass || "";
+                    typeof action.className === "function"
+                      ? action.className(row)
+                      : action.className || "";
                   const title =
                     typeof action.title === "function"
                       ? action.title(row)
