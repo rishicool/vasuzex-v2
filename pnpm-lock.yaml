@@ -68,8 +68,8 @@ importers:
         specifier: ^11.3.2
         version: 11.3.2
       guruorm:
-        specifier: ^2.0.16
-        version: 2.0.16
+        specifier: ^2.0.17
+        version: 2.0.17
       helmet:
         specifier: ^8.1.0
         version: 8.1.0
@@ -2805,8 +2805,8 @@ packages:
     resolution: {integrity: sha512-pCcEwRi+TKpMlxAQObHDQ56KawURgyAf6jtIY046fJ5tIv3zDe/LEIubckAO8fj6JnAxLdmWkUfNyulQ2iKdEw==}
     engines: {node: '>=14.0.0'}
 
-  guruorm@2.0.16:
-    resolution: {integrity: sha512-WRBVuqXJG0SSn7UfcVyb0WCd1avTL3OVG0yJ/feQC9NDgxSynDbBCyZwEoou9rsS09mDPor4IBC5ZHVO7aokNg==}
+  guruorm@2.0.17:
+    resolution: {integrity: sha512-XYXR4fvebOxFUGOcfTJnyFltxp04eufQ/sfSXdR/9Xmok0tciTYNtpRe3RENozuCM9qPrrgShu3yTxMP93M+vw==}
     engines: {node: '>=16.0.0'}
     hasBin: true
 
@@ -8301,7 +8301,7 @@ snapshots:
       - encoding
       - supports-color
 
-  guruorm@2.0.16:
+  guruorm@2.0.17:
     dependencies:
       '@faker-js/faker': 8.4.1
       chalk: 4.1.2
