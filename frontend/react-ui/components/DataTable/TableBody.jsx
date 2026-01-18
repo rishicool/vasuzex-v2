@@ -75,7 +75,7 @@ export function TableBody({
           
           {/* Render Actions */}
           {actions && (
-            <td className="px-6 py-4 text-right">
+            <td className="px-2 py-2 text-right">
               <div className="flex items-center justify-end gap-2">
                 {actions.map((userAction, actionIdx) => {
                   // Check visibility first
@@ -146,7 +146,7 @@ export function TableBody({
                   const content = action.renderContent ? (
                     action.renderContent(row)
                   ) : Icon ? (
-                    <Icon className="h-5 w-5" />
+                    <Icon className="h-4 w-4" />
                   ) : (
                     action.label
                   );

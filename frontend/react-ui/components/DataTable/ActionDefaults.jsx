@@ -1,10 +1,11 @@
-import { FiEye, FiEdit, FiTrash2 } from "react-icons/fi";
+import { Eye, Edit2, Trash2 } from "lucide-react";
 
 /**
  * ActionDefaults - Production Ready
  * 
  * Default configurations for common DataTable actions
  * Provides sensible defaults for edit, view, delete, and switch actions
+ * Uses lucide-react icons matching RowActionsCell design
  * 
  * @module components/DataTable/ActionDefaults
  */
@@ -13,26 +14,26 @@ export const ACTION_DEFAULTS = {
   edit: {
     type: "link",
     label: "Edit",
-    icon: FiEdit,
+    icon: Edit2,
     title: "Edit",
     extraClass:
-      "rounded-lg p-2 text-brand-600 hover:bg-brand-50 dark:text-brand-400 dark:hover:bg-gray-700",
+      "p-1.5 text-gray-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors dark:text-gray-400 dark:hover:text-emerald-400 dark:hover:bg-emerald-950/30",
   },
   view: {
     type: "button",
     label: "View Details",
-    icon: FiEye,
+    icon: Eye,
     title: "View Details",
     extraClass:
-      "rounded-lg p-2 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-gray-700",
+      "p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors dark:text-gray-400 dark:hover:text-blue-400 dark:hover:bg-blue-950/30",
   },
   delete: {
     type: "button",
     label: "Delete",
-    icon: FiTrash2,
+    icon: Trash2,
     title: "Delete",
     extraClass:
-      "rounded-lg p-2 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-gray-700",
+      "p-1.5 text-gray-600 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors dark:text-gray-400 dark:hover:text-rose-400 dark:hover:bg-rose-950/30",
   },
   switch: {
     type: "button",
