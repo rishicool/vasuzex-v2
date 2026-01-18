@@ -42,7 +42,10 @@ export function RowActionsCell({
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
-  const isPending = hasApproval && row.approval_status === 'pending';
+  
+  // Determine which approval actions to show based on current status
+  const showApprove = hasApproval && (row.approval_status === 'pending' || row.approval_status === 'rejected');
+  const showReject = hasApproval && (row.approval_status === 'pending' || row.approval_status === 'approved');
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -106,10 +109,10 @@ export function RowActionsCell({
 
         {isMenuOpen && (
           <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 py-1">
-            {/* Approval Actions - Only show when pending */}
-            {hasApproval && isPending && (
+            {/* Approval Actions - Show based on current status */}
+            {(showApprove || showReject) && (
               <>
-                {onApprove && (
+                {showApprove && onApprove && (
                   <button
                     onClick={() => {
                       onApprove(row);
@@ -118,10 +121,10 @@ export function RowActionsCell({
                     className="w-full flex items-center gap-3 px-4 py-2 text-sm text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30"
                   >
                     <CheckCircle className="h-4 w-4" />
-                    <span>Approve</span>
+                    <span>{row.approval_status === 'rejected' ? 'Re-approve' : 'Approve'}</span>
                   </button>
                 )}
-                {onReject && (
+                {showReject && onReject && (
                   <button
                     onClick={() => {
                       onReject(row);
@@ -130,7 +133,7 @@ export function RowActionsCell({
                     className="w-full flex items-center gap-3 px-4 py-2 text-sm text-rose-700 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/30"
                   >
                     <XCircle className="h-4 w-4" />
-                    <span>Reject</span>
+                    <span>{row.approval_status === 'approved' ? 'Revoke/Reject' : 'Reject'}</span>
                   </button>
                 )}
                 <div className="border-t border-gray-200 dark:border-gray-700 my-1" />
