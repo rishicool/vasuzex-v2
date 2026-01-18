@@ -37,23 +37,25 @@ export class MediaManager {
     const cached = await this.getCachedThumbnail(cacheKey);
     
     if (cached) {
+      // Detect content type from cached buffer
+      const contentType = await this.detectContentType(cached);
       return {
         buffer: cached,
         fromCache: true,
-        contentType: 'image/jpeg',
+        contentType,
       };
     }
 
     // Generate thumbnail
-    const thumbnail = await this.generateThumbnail(imagePath, width, height);
+    const result = await this.generateThumbnail(imagePath, width, height);
     
     // Cache it
-    await this.cacheThumbnail(cacheKey, thumbnail);
+    await this.cacheThumbnail(cacheKey, result.buffer);
 
     return {
-      buffer: thumbnail,
+      buffer: result.buffer,
       fromCache: false,
-      contentType: 'image/jpeg',
+      contentType: result.contentType,
     };
   }
 
@@ -78,19 +80,47 @@ export class MediaManager {
     const storage = this.app.make('storage');
     const imageBuffer = await storage.get(imagePath);
 
-    const thumbnail = await sharp(imageBuffer)
+    // Detect image metadata
+    const image = sharp(imageBuffer);
+    const metadata = await image.metadata();
+    const hasAlpha = metadata.hasAlpha;
+    const originalFormat = metadata.format;
+
+    // Build the sharp pipeline
+    let pipeline = sharp(imageBuffer)
       .resize(width, height, {
         fit: this.config.thumbnails.fit,
         position: this.config.thumbnails.position,
         withoutEnlargement: true,
-      })
-      .jpeg({
+      });
+
+    // Choose output format based on input format and transparency
+    let contentType = 'image/jpeg';
+    
+    if (originalFormat === 'webp') {
+      // Preserve WebP format (supports transparency and good compression)
+      pipeline = pipeline.webp({
+        quality: this.config.thumbnails.quality,
+      });
+      contentType = 'image/webp';
+    } else if (hasAlpha) {
+      // For PNG or other formats with transparency, use PNG
+      pipeline = pipeline.png({
+        quality: this.config.thumbnails.quality,
+        compressionLevel: 9,
+      });
+      contentType = 'image/png';
+    } else {
+      // For opaque images, use JPEG for best compression
+      pipeline = pipeline.jpeg({
         quality: this.config.thumbnails.quality,
         progressive: true,
-      })
-      .toBuffer();
+      });
+    }
 
-    return thumbnail;
+    const thumbnail = await pipeline.toBuffer();
+
+    return { buffer: thumbnail, contentType };
   }
 
   /**
@@ -139,22 +169,27 @@ export class MediaManager {
    */
   async getCachedThumbnail(cacheKey) {
     try {
-      const cachePath = join(this.cacheDir, `${cacheKey}.jpg`);
-      
-      if (!existsSync(cachePath)) {
-        return null;
-      }
+      // Try all supported image extensions
+      for (const ext of ['.webp', '.png', '.jpg']) {
+        const cachePath = join(this.cacheDir, `${cacheKey}${ext}`);
+        
+        if (!existsSync(cachePath)) {
+          continue;
+        }
 
-      // Check if cache expired
-      const stats = await stat(cachePath);
-      const age = Date.now() - stats.mtimeMs;
-      
-      if (age > this.cacheTTL) {
-        await unlink(cachePath);
-        return null;
-      }
+        // Check if cache expired
+        const stats = await stat(cachePath);
+        const age = Date.now() - stats.mtimeMs;
+        
+        if (age > this.cacheTTL) {
+          await unlink(cachePath);
+          continue;
+        }
 
-      return await readFile(cachePath);
+        return await readFile(cachePath);
+      }
+      
+      return null;
     } catch (error) {
       return null;
     }
@@ -165,7 +200,15 @@ export class MediaManager {
    */
   async cacheThumbnail(cacheKey, buffer) {
     try {
-      const cachePath = join(this.cacheDir, `${cacheKey}.jpg`);
+      // Detect format from buffer to use correct extension
+      const metadata = await sharp(buffer).metadata();
+      const formatMap = {
+        webp: '.webp',
+        png: '.png',
+        jpeg: '.jpg',
+      };
+      const ext = formatMap[metadata.format] || '.jpg';
+      const cachePath = join(this.cacheDir, `${cacheKey}${ext}`);
       await mkdir(dirname(cachePath), { recursive: true });
       await writeFile(cachePath, buffer);
     } catch (error) {
@@ -180,12 +223,12 @@ export class MediaManager {
   async getCacheStats() {
     try {
       const files = await readdir(this.cacheDir);
-      const jpgFiles = files.filter(f => f.endsWith('.jpg'));
+      const imageFiles = files.filter(f => f.endsWith('.jpg') || f.endsWith('.png') || f.endsWith('.webp'));
 
       let totalSize = 0;
       let expiredCount = 0;
 
-      for (const file of jpgFiles) {
+      for (const file of imageFiles) {
         const filePath = join(this.cacheDir, file);
         const stats = await stat(filePath);
         totalSize += stats.size;
@@ -197,7 +240,7 @@ export class MediaManager {
       }
 
       return {
-        total: jpgFiles.length,
+        total: imageFiles.length,
         size: totalSize,
         sizeFormatted: this.formatBytes(totalSize),
         expired: expiredCount,
@@ -223,11 +266,11 @@ export class MediaManager {
   async clearExpiredCache() {
     try {
       const files = await readdir(this.cacheDir);
-      const jpgFiles = files.filter(f => f.endsWith('.jpg'));
+      const imageFiles = files.filter(f => f.endsWith('.jpg') || f.endsWith('.png') || f.endsWith('.webp'));
 
       let cleared = 0;
 
-      for (const file of jpgFiles) {
+      for (const file of imageFiles) {
         const filePath = join(this.cacheDir, file);
         const stats = await stat(filePath);
         const age = Date.now() - stats.mtimeMs;
@@ -251,14 +294,14 @@ export class MediaManager {
   async clearAllCache() {
     try {
       const files = await readdir(this.cacheDir);
-      const jpgFiles = files.filter(f => f.endsWith('.jpg'));
+      const imageFiles = files.filter(f => f.endsWith('.jpg') || f.endsWith('.png') || f.endsWith('.webp'));
 
-      for (const file of jpgFiles) {
+      for (const file of imageFiles) {
         const filePath = join(this.cacheDir, file);
         await unlink(filePath);
       }
 
-      return jpgFiles.length;
+      return imageFiles.length;
     } catch (error) {
       console.error('Failed to clear cache:', error.message);
       return 0;
@@ -291,6 +334,25 @@ export class MediaManager {
       svg: 'image/svg+xml',
     };
     return types[ext] || 'application/octet-stream';
+  }
+
+  /**
+   * Detect content type from buffer
+   */
+  async detectContentType(buffer) {
+    try {
+      const metadata = await sharp(buffer).metadata();
+      const formatMap = {
+        jpeg: 'image/jpeg',
+        png: 'image/png',
+        gif: 'image/gif',
+        webp: 'image/webp',
+        svg: 'image/svg+xml',
+      };
+      return formatMap[metadata.format] || 'image/jpeg';
+    } catch (error) {
+      return 'image/jpeg';
+    }
   }
 
   /**
