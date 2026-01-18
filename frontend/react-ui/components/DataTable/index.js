@@ -16,3 +16,6 @@ export {
   createViewClickHandler, 
   createDeleteClickHandler 
 } from './ActionDefaults.jsx';
+
+// Cell Components - Reusable cell renderers
+export { ApprovalStatusCell, RowActionsCell } from './CellComponents/index.js';

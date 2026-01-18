@@ -1,6 +1,6 @@
 {
   "name": "vasuzex",
-  "version": "2.1.17",
+  "version": "2.1.18",
   "description": "Laravel-inspired framework for Node.js monorepos - V2 with optimized dependencies",
   "type": "module",
   "main": "./framework/index.js",
@@ -115,6 +115,7 @@
     "joi": "^17.13.3",
     "jose": "^6.1.3",
     "jsonwebtoken": "^9.0.3",
+    "lucide-react": "^0.553.0",
     "maxmind": "^5.0.1",
     "multer": "^2.0.2",
     "node-plop": "^0.32.3",
