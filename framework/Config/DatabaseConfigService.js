@@ -224,8 +224,9 @@ export class DatabaseConfigService {
   }
 
   /**
-   * Load API configs (scope='api') from database
+   * Load API configs (scope='api' and scope='all') from database
    * These are the backend configs that get loaded into Config facade
+   * scope='all' means shared between frontend and backend (no duplication)
    * @private
    */
   async #loadApiConfigs() {
@@ -237,9 +238,9 @@ export class DatabaseConfigService {
       return;
     }
 
-    // Load only API-scoped configs for backend
+    // Load API-scoped AND shared (scope='all') configs for backend
     const configs = await AppConfig.query()
-      .where('scope', 'api')
+      .whereIn('scope', ['api', 'app', 'all'])
       .where('is_active', true)
       .where((query) => {
         query.where('environment', this.#environment)
