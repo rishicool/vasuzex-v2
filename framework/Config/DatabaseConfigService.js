@@ -1,7 +1,11 @@
 /**
  * DatabaseConfigService
- * Loads runtime configurations from database (app_configs and system_configs tables)
+ * Loads runtime configurations from database (app_configs table ONLY)
  * and merges them into the ConfigRepository
+ * 
+ * UNIFIED: system_configs has been merged into app_configs with scope column
+ * - scope='app' → Frontend configs (for web/mobile apps)
+ * - scope='api' → Backend configs (loaded into Config facade)
  * 
  * Similar to Laravel's database-driven config but integrated with Vasuzex's ConfigRepository
  * 
@@ -12,7 +16,7 @@
  * await dbConfigService.load();
  * 
  * // Now access via config()
- * app.config('phonepe.merchantId'); // From database
+ * app.config('PLATFORM_FEES'); // From database (scope='api')
  * app.config('app.name'); // From file-based config
  */
 
@@ -28,8 +32,8 @@ export class DatabaseConfigService {
    * @private
    */
   #cache = {
-    appConfigs: null,
-    systemConfigs: null,
+    apiConfigs: null,      // Backend configs (scope='api')
+    appConfigs: null,      // Frontend configs (scope='app') - for reference only
     lastLoadTime: null,
   };
 
@@ -71,9 +75,8 @@ export class DatabaseConfigService {
 
       console.log('[DatabaseConfigService] Loading configs from database...');
 
-      // Load configs from database
-      await this.#loadAppConfigs();
-      await this.#loadSystemConfigs();
+      // Load API configs (scope='api') - for backend/Config facade
+      await this.#loadApiConfigs();
 
       // Update cache timestamp
       this.#cache.lastLoadTime = Date.now();
@@ -100,28 +103,16 @@ export class DatabaseConfigService {
   /**
    * Get config value directly from database (bypass ConfigRepository)
    * @param {string} key - Config key
+   * @param {string} scope - Config scope ('app' or 'api')
    * @param {*} defaultValue - Default value
    * @returns {Promise<*>}
    */
-  async getDirect(key, defaultValue = null) {
-    // Try app_configs first
+  async getDirect(key, scope = 'api', defaultValue = null) {
     const AppConfig = await this.#getModel('AppConfig');
     if (AppConfig) {
-      const value = await AppConfig.getValue(key, this.#environment, null);
-      if (value !== null) {
-        return value;
-      }
+      const value = await AppConfig.getTypedValue(key, scope, defaultValue);
+      return value;
     }
-
-    // Try system_configs
-    const SystemConfig = await this.#getModel('SystemConfig');
-    if (SystemConfig) {
-      const value = await SystemConfig.getValue(key, this.#environment, null);
-      if (value !== null) {
-        return value;
-      }
-    }
-
     return defaultValue;
   }
 
@@ -129,32 +120,65 @@ export class DatabaseConfigService {
    * Set config value in database
    * @param {string} key - Config key
    * @param {*} value - Config value
-   * @param {Object} options - Additional options (category, description, etc.)
+   * @param {Object} options - Additional options (scope, category, description, etc.)
    * @returns {Promise<void>}
    */
   async set(key, value, options = {}) {
     const {
-      type = 'app', // 'app' or 'system'
+      scope = 'api',         // 'app' or 'api'
       category = 'app',
       description = '',
-      is_public = false,
+      access_level = 'internal',
+      data_type = 'string',
       is_active = true,
       environment = this.#environment,
     } = options;
 
-    const Model = await this.#getModel(type === 'app' ? 'AppConfig' : 'SystemConfig');
+    const AppConfig = await this.#getModel('AppConfig');
 
-    if (!Model) {
-      throw new Error(`Model not found for type: ${type}`);
+    if (!AppConfig) {
+      throw new Error('AppConfig model not found');
     }
 
-    await Model.setValue(key, value, {
-      category,
-      description,
-      is_public,
-      is_active,
-      environment,
-    });
+    // Serialize value based on type
+    let serializedValue = value;
+    if (data_type === 'array' || data_type === 'object') {
+      serializedValue = typeof value === 'string' ? value : JSON.stringify(value);
+    } else if (data_type === 'boolean') {
+      serializedValue = value ? 'true' : 'false';
+    } else {
+      serializedValue = String(value);
+    }
+
+    // Upsert the config
+    const existing = await AppConfig.query()
+      .where('key', key)
+      .where('scope', scope)
+      .where('environment', environment)
+      .first();
+
+    if (existing) {
+      await AppConfig.where('id', existing.id).update({
+        value: serializedValue,
+        category,
+        description,
+        access_level,
+        data_type,
+        is_active,
+      });
+    } else {
+      await AppConfig.create({
+        key,
+        value: serializedValue,
+        scope,
+        category,
+        description,
+        access_level,
+        data_type,
+        is_active,
+        environment,
+      });
+    }
 
     // Invalidate cache
     this.#cache.lastLoadTime = null;
@@ -166,22 +190,26 @@ export class DatabaseConfigService {
   /**
    * Delete config from database
    * @param {string} key - Config key
-   * @param {string} type - Config type ('app' or 'system')
+   * @param {string} scope - Config scope ('app' or 'api')
    * @returns {Promise<boolean>}
    */
-  async delete(key, type = 'app') {
-    const Model = await this.#getModel(type === 'app' ? 'AppConfig' : 'SystemConfig');
+  async delete(key, scope = 'api') {
+    const AppConfig = await this.#getModel('AppConfig');
 
-    if (!Model) {
+    if (!AppConfig) {
       return false;
     }
 
-    const result = await Model.deleteByKey(key, this.#environment);
+    await AppConfig.query()
+      .where('key', key)
+      .where('scope', scope)
+      .where('environment', this.#environment)
+      .delete();
 
     // Invalidate cache
     this.#cache.lastLoadTime = null;
 
-    return result;
+    return true;
   }
 
   /**
@@ -190,47 +218,47 @@ export class DatabaseConfigService {
    */
   getAllDatabaseConfigs() {
     return {
+      api: this.#cache.apiConfigs || {},
       app: this.#cache.appConfigs || {},
-      system: this.#cache.systemConfigs || {},
     };
   }
 
   /**
-   * Load app_configs from database
+   * Load API configs (scope='api') from database
+   * These are the backend configs that get loaded into Config facade
    * @private
    */
-  async #loadAppConfigs() {
+  async #loadApiConfigs() {
     const AppConfig = await this.#getModel('AppConfig');
 
     if (!AppConfig) {
       console.warn('[DatabaseConfigService] AppConfig model not found');
-      this.#cache.appConfigs = {};
+      this.#cache.apiConfigs = {};
       return;
     }
 
-    const configs = await AppConfig.getAllAsObject(this.#environment);
-    this.#cache.appConfigs = configs;
-  }
+    // Load only API-scoped configs for backend
+    const configs = await AppConfig.query()
+      .where('scope', 'api')
+      .where('is_active', true)
+      .where((query) => {
+        query.where('environment', this.#environment)
+          .orWhere('environment', 'all');
+      })
+      .get();
 
-  /**
-   * Load system_configs from database
-   * @private
-   */
-  async #loadSystemConfigs() {
-    const SystemConfig = await this.#getModel('SystemConfig');
-
-    if (!SystemConfig) {
-      console.warn('[DatabaseConfigService] SystemConfig model not found');
-      this.#cache.systemConfigs = {};
-      return;
+    // Transform to key-value object with type casting
+    const result = {};
+    for (const config of configs) {
+      result[config.key] = AppConfig.castValue(config.value, config.data_type);
     }
 
-    const configs = await SystemConfig.getAllAsObject(this.#environment);
-    this.#cache.systemConfigs = configs;
+    this.#cache.apiConfigs = result;
   }
 
   /**
    * Merge database configs into ConfigRepository
+   * Only API-scoped configs are merged (frontend configs stay in DB)
    * @private
    */
   #mergeIntoConfigRepository() {
@@ -240,16 +268,9 @@ export class DatabaseConfigService {
       throw new Error('[DatabaseConfigService] ConfigRepository not found in container');
     }
 
-    // Merge app_configs
-    if (this.#cache.appConfigs) {
-      for (const [key, value] of Object.entries(this.#cache.appConfigs)) {
-        config.set(key, value);
-      }
-    }
-
-    // Merge system_configs
-    if (this.#cache.systemConfigs) {
-      for (const [key, value] of Object.entries(this.#cache.systemConfigs)) {
+    // Merge only API configs (backend configs)
+    if (this.#cache.apiConfigs) {
+      for (const [key, value] of Object.entries(this.#cache.apiConfigs)) {
         config.set(key, value);
       }
     }
@@ -323,8 +344,8 @@ export class DatabaseConfigService {
    */
   clearCache() {
     this.#cache = {
+      apiConfigs: null,
       appConfigs: null,
-      systemConfigs: null,
       lastLoadTime: null,
     };
   }
@@ -337,8 +358,7 @@ export class DatabaseConfigService {
     return {
       isValid: this.#isCacheValid(),
       lastLoadTime: this.#cache.lastLoadTime,
-      appConfigsCount: Object.keys(this.#cache.appConfigs || {}).length,
-      systemConfigsCount: Object.keys(this.#cache.systemConfigs || {}).length,
+      apiConfigsCount: Object.keys(this.#cache.apiConfigs || {}).length,
       cacheAge: this.#cache.lastLoadTime ? Date.now() - this.#cache.lastLoadTime : null,
       cacheDuration: this.#cacheDuration,
     };

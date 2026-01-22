@@ -2,8 +2,11 @@
  * DatabaseConfigServiceProvider
  * Service provider for database-driven configuration
  * 
- * Loads configurations from database (app_configs and system_configs)
- * and merges them into the ConfigRepository during boot phase
+ * UNIFIED: Loads configurations from app_configs table ONLY
+ * (system_configs has been merged into app_configs with scope column)
+ * 
+ * - scope='api' configs are loaded into Config facade for backend use
+ * - scope='app' configs stay in DB for frontend API endpoints
  * 
  * @example
  * // In app.js
@@ -39,23 +42,22 @@ export class DatabaseConfigServiceProvider extends ServiceProvider {
 
   /**
    * Bootstrap services
-   * Load database configs and merge into ConfigRepository
+   * Load database configs (scope='api') and merge into ConfigRepository
    */
   async boot() {
     try {
       const dbConfigService = this.make('db.config');
       
-      // Load configs from database
+      // Load API-scoped configs from unified app_configs table
       await dbConfigService.load();
       
-      console.log('[DatabaseConfigServiceProvider] Database configs loaded');
+      console.log('[DatabaseConfigServiceProvider] Database configs loaded (unified app_configs table)');
       
       // Log cache stats in debug mode
       if (this.config('app.debug', false)) {
         const stats = dbConfigService.getCacheStats();
         console.log('[DatabaseConfigServiceProvider] Cache stats:', {
-          appConfigs: stats.appConfigsCount,
-          systemConfigs: stats.systemConfigsCount,
+          apiConfigs: stats.apiConfigsCount,
           cacheValid: stats.isValid,
         });
       }
