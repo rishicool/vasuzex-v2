@@ -441,7 +441,7 @@ export class UploadManager {
 
   /**
    * Get config with DB override support
-   * Checks system_configs table first, then falls back to file config
+   * Checks app_configs table with scope='api' first, then falls back to file config
    * 
    * @param {string} key - Config key (e.g., 'document', 'image', 'default')
    * @returns {Promise<any>} Config value
@@ -449,13 +449,15 @@ export class UploadManager {
    */
   async getConfigWithDbOverride(key) {
     try {
-      // Try database first (system_configs or app_configs)
+      // Try database first (app_configs with scope='api' - unified table)
       const db = this.app.make('db');
       
       if (db) {
         const dbConfig = await db
-          .table('system_configs')
+          .table('app_configs')
           .where('key', `upload.${key}`)
+          .where('scope', 'api')
+          .where('is_active', true)
           .first();
         
         if (dbConfig && dbConfig.value) {
