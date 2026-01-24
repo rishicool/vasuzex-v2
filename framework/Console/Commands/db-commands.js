@@ -12,8 +12,23 @@ import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
 
-// Load environment variables
-dotenv.config({ path: resolve(process.cwd(), '.env') });
+// Load environment variables based on NODE_ENV
+const loadEnvFiles = () => {
+  const cwd = process.cwd();
+  const nodeEnv = process.env.NODE_ENV || 'development';
+  
+  // Load base .env first
+  dotenv.config({ path: resolve(cwd, '.env') });
+  
+  // Then load environment-specific .env file (overrides base)
+  const envFile = `.env.${nodeEnv}`;
+  const envPath = resolve(cwd, envFile);
+  if (existsSync(envPath)) {
+    dotenv.config({ path: envPath, override: true });
+  }
+};
+
+loadEnvFiles();
 
 /**
  * Generate GuruORM config from framework config
