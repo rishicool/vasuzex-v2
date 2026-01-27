@@ -15,16 +15,19 @@ const require = createRequire(import.meta.url);
 // Load environment variables based on NODE_ENV
 const loadEnvFiles = () => {
   const cwd = process.cwd();
-  const nodeEnv = process.env.NODE_ENV || 'development';
   
-  // Load base .env first
+  // Step 1: Load base .env first (to get NODE_ENV)
   dotenv.config({ path: resolve(cwd, '.env') });
   
-  // Then load environment-specific .env file (overrides base)
-  const envFile = `.env.${nodeEnv}`;
-  const envPath = resolve(cwd, envFile);
-  if (existsSync(envPath)) {
-    dotenv.config({ path: envPath, override: true });
+  // Step 2: Now check NODE_ENV and load environment-specific file
+  const nodeEnv = process.env.NODE_ENV;
+  if (nodeEnv && nodeEnv !== 'development') {
+    const envFile = `.env.${nodeEnv}`;
+    const envPath = resolve(cwd, envFile);
+    if (existsSync(envPath)) {
+      // Override base .env with environment-specific values
+      dotenv.config({ path: envPath, override: true });
+    }
   }
 };
 
