@@ -13,6 +13,7 @@
 
 const CACHE_KEY = 'app-config';
 const CACHE_EXPIRY_KEY = 'app-config-expiry';
+const CACHE_VERSION_KEY = 'app-config-version';
 const DEFAULT_CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 const BACKGROUND_REFRESH_KEY = 'app-config-last-background-refresh';
 const BACKGROUND_REFRESH_INTERVAL = 60 * 60 * 1000; // 1 hour - only refresh once per hour
@@ -25,18 +26,33 @@ const BACKGROUND_REFRESH_INTERVAL = 60 * 60 * 1000; // 1 hour - only refresh onc
  * @param {boolean} options.forceRefresh - Skip cache and fetch fresh
  * @param {number} options.cacheDuration - Cache duration in milliseconds
  * @param {string} options.configUrl - Custom config endpoint path (default: '/config/app-settings')
+ * @param {boolean} options.versionCheck - Enable version-based cache invalidation (default: false)
+ * @param {string} options.versionUrl - Custom version endpoint path (default: '/config/version')
  * @returns {Promise<Object>} Configuration object
  */
 export async function loadAppConfig(apiBaseUrl, options = {}) {
     const { 
         forceRefresh = false, 
         cacheDuration = DEFAULT_CACHE_DURATION,
-        configUrl = '/config/app-settings'
+        configUrl = '/config/app-settings',
+        versionCheck = false,
+        versionUrl = '/config/version'
     } = options;
 
     try {
+        let shouldForceRefresh = forceRefresh;
+
+        // Check version if enabled
+        if (versionCheck && !forceRefresh) {
+            const versionChanged = await checkConfigVersion(apiBaseUrl, versionUrl);
+            if (versionChanged) {
+                console.log('🔄 Config version changed, clearing cache');
+                shouldForceRefresh = true;
+            }
+        }
+
         // Check cache first (unless force refresh)
-        if (!forceRefresh) {
+        if (!shouldForceRefresh) {
             const cached = getCachedConfig();
             if (cached) {
                 console.log('📦 Using cached app config');
@@ -51,6 +67,11 @@ export async function loadAppConfig(apiBaseUrl, options = {}) {
         // Fetch from API
         console.log('🌐 Fetching app config from API...');
         const config = await fetchConfigFromAPI(apiBaseUrl, configUrl);
+
+        // Extract and store version from response if present
+        if (versionCheck && config._meta?.version) {
+            localStorage.setItem(CACHE_VERSION_KEY, config._meta.version);
+        }
 
         // Cache the result
         cacheConfig(config, cacheDuration);
@@ -197,12 +218,76 @@ async function refreshConfigInBackground(apiBaseUrl, cacheDuration, configUrl = 
 }
 
 /**
+ * Check if config version has changed on server
+ * @param {string} apiBaseUrl - API base URL
+ * @param {string} versionUrl - Version endpoint path
+ * @returns {Promise<boolean>} True if version changed, false otherwise
+ */
+async function checkConfigVersion(apiBaseUrl, versionUrl) {
+    try {
+        const baseUrl = apiBaseUrl.replace(/\/$/, '');
+        const path = versionUrl.startsWith('/') ? versionUrl : `/${versionUrl}`;
+        const url = `${baseUrl}${path}`;
+
+        // Fetch version from server
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+        });
+
+        // If endpoint doesn't exist, silently continue (backward compatible)
+        if (response.status === 404) {
+            console.debug('[ConfigLoader] Version endpoint not found (backward compatible mode)');
+            return false;
+        }
+
+        if (!response.ok) {
+            throw new Error(`Version check failed: ${response.status}`);
+        }
+
+        const result = await response.json();
+        
+        // Extract version from standardized response: { success, data: { version } }
+        const serverVersion = result.data?.version || result.version;
+        
+        if (!serverVersion) {
+            console.warn('[ConfigLoader] No version found in response');
+            return false;
+        }
+
+        // Get cached version
+        const cachedVersion = localStorage.getItem(CACHE_VERSION_KEY);
+
+        // First time - store version
+        if (!cachedVersion) {
+            localStorage.setItem(CACHE_VERSION_KEY, serverVersion);
+            return false; // Don't force refresh on first load
+        }
+
+        // Compare versions
+        if (cachedVersion !== serverVersion) {
+            console.log(`[ConfigLoader] Version changed: ${cachedVersion} → ${serverVersion}`);
+            localStorage.setItem(CACHE_VERSION_KEY, serverVersion);
+            clearConfigCache(); // Clear cache to force fresh fetch
+            return true;
+        }
+
+        return false; // Version unchanged
+    } catch (error) {
+        // Non-critical error - don't break the app
+        console.debug('[ConfigLoader] Version check failed (non-critical):', error.message);
+        return false;
+    }
+}
+
+/**
  * Clear cached configuration
  */
 export function clearConfigCache() {
     localStorage.removeItem(CACHE_KEY);
     localStorage.removeItem(CACHE_EXPIRY_KEY);
     localStorage.removeItem(BACKGROUND_REFRESH_KEY);
+    // Note: We don't clear CACHE_VERSION_KEY - it's needed for next comparison
     console.log('🗑️ Config cache cleared');
 }
 
