@@ -62,7 +62,9 @@ export function AppConfigProvider({
   errorComponent,
   showLoadingScreen = true,
   showErrorScreen = true,
-  cacheDuration
+  cacheDuration,
+  versionCheck = false,
+  versionUrl
 }) {
   const [config, setConfig] = useState(defaultConfig);
   const [loading, setLoading] = useState(true);
@@ -108,6 +110,8 @@ export function AppConfigProvider({
         forceRefresh,
         cacheDuration,
         configUrl,
+        versionCheck,
+        versionUrl,
       });
       
       setConfig(fetchedConfig);
@@ -119,7 +123,7 @@ export function AppConfigProvider({
     } finally {
       setLoading(false);
     }
-  }, [getApiBaseUrl, cacheDuration, configUrl]); // Removed defaultConfig from deps
+  }, [getApiBaseUrl, cacheDuration, configUrl, versionCheck, versionUrl]); // Removed defaultConfig from deps
   
   // Load config only once on mount
   useEffect(() => {
@@ -255,6 +259,8 @@ AppConfigProvider.propTypes = {
   showLoadingScreen: PropTypes.bool,
   showErrorScreen: PropTypes.bool,
   cacheDuration: PropTypes.number,
+  versionCheck: PropTypes.bool,
+  versionUrl: PropTypes.string,
 };
 
 /**
