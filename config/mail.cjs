@@ -21,7 +21,7 @@ module.exports = {
   | Mailer Configurations
   |--------------------------------------------------------------------------
   |
-  | Supported: "smtp", "sendgrid", "ses", "mailgun"
+  | Supported: "smtp", "sendgrid", "ses", "mailgun", "mailjet"
   |
   */
   mailers: {
@@ -38,6 +38,12 @@ module.exports = {
     sendgrid: {
       transport: 'sendgrid',
       api_key: env('SENDGRID_API_KEY'),
+    },
+
+    mailjet: {
+      transport: 'mailjet',
+      api_key: env('MAILJET_API_KEY'),
+      api_secret: env('MAILJET_API_SECRET'),
     },
 
     ses: {

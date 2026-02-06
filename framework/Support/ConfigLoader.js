@@ -34,17 +34,55 @@ export class ConfigLoader {
 
   /**
    * Load .env file manually (simple dotenv replacement)
+   * Now supports environment-specific files:
+   * - .env (base)
+   * - .env.local (local overrides, gitignored)
+   * - .env.{environment} (environment-specific)
+   * - .env.{environment}.local (environment + local overrides)
+   * 
+   * Load order (later files override earlier):
+   * 1. .env
+   * 2. .env.local
+   * 3. .env.{environment}
+   * 4. .env.{environment}.local
    */
   loadDotenv() {
-    const envPath = path.join(this.rootDir, this.envFile);
+    const environment = this.environment;
+    
+    // Define load order (later files override earlier)
+    const envFiles = [
+      '.env',                           // Base environment
+      '.env.local',                     // Local overrides (gitignored)
+      `.env.${environment}`,            // Environment-specific
+      `.env.${environment}.local`,      // Environment + local
+    ];
+
+    let loadedCount = 0;
+    
+    for (const envFile of envFiles) {
+      const loaded = this.#loadDotenvFile(envFile);
+      if (loaded) loadedCount++;
+    }
+
+    if (loadedCount === 0) {
+      // Only warn if no environment variables are loaded at all
+      if (!process.env.APP_NAME && !process.env.DB_CONNECTION) {
+        console.warn(`⚠️  No .env files found in ${this.rootDir}`);
+      }
+    } else {
+      console.log(`✅ Loaded ${loadedCount} .env file(s)`);
+    }
+  }
+
+  /**
+   * Load a specific .env file
+   * @private
+   */
+  #loadDotenvFile(filename) {
+    const envPath = path.join(this.rootDir, filename);
     
     if (!fs.existsSync(envPath)) {
-      // Only warn if no environment variables are loaded at all
-      // (database module may have already loaded .env from project root)
-      if (!process.env.APP_NAME && !process.env.DB_CONNECTION) {
-        console.warn(`⚠️  .env file not found at ${envPath}`);
-      }
-      return;
+      return false;
     }
 
     const envContent = fs.readFileSync(envPath, 'utf-8');
@@ -52,15 +90,23 @@ export class ConfigLoader {
       line = line.trim();
       if (!line || line.startsWith('#')) return;
 
-      const [key, ...valueParts] = line.split('=');
-      const value = valueParts.join('=').trim();
+      const equalIndex = line.indexOf('=');
+      if (equalIndex === -1) return;
 
-      if (key && !process.env[key]) {
-        process.env[key] = value;
+      const key = line.substring(0, equalIndex).trim();
+      let value = line.substring(equalIndex + 1).trim();
+
+      // Strip quotes (single or double)
+      if ((value.startsWith('"') && value.endsWith('"')) ||
+          (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.substring(1, value.length - 1);
       }
+
+      // Allow override (later files win)
+      process.env[key] = value;
     });
 
-    console.log(`✅ Loaded .env file from ${envPath}`);
+    return true;
   }
 
   /**

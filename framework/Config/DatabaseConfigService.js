@@ -260,6 +260,7 @@ export class DatabaseConfigService {
   /**
    * Merge database configs into ConfigRepository
    * Only API-scoped configs are merged (frontend configs stay in DB)
+   * Now with proper deep merge support for nested configs
    * @private
    */
   #mergeIntoConfigRepository() {
@@ -271,10 +272,41 @@ export class DatabaseConfigService {
 
     // Merge only API configs (backend configs)
     if (this.#cache.apiConfigs) {
-      for (const [key, value] of Object.entries(this.#cache.apiConfigs)) {
+      // Transform flat keys to nested structure
+      const nested = this.#transformFlatKeysToNested(this.#cache.apiConfigs);
+      
+      // Merge nested configs into ConfigRepository
+      for (const [key, value] of Object.entries(nested)) {
         config.set(key, value);
       }
     }
+  }
+
+  /**
+   * Transform flat dot-notation keys from database into nested object structure
+   * Example: { 'mail.mailers.mailjet.api_key': 'xxx' } => { mail: { mailers: { mailjet: { api_key: 'xxx' } } } }
+   * @private
+   */
+  #transformFlatKeysToNested(flatConfigs) {
+    // Manual transformation without external dependencies
+    const nested = {};
+    
+    for (const [key, value] of Object.entries(flatConfigs)) {
+      const keys = key.split('.');
+      const lastKey = keys.pop();
+      
+      let current = nested;
+      for (const k of keys) {
+        if (!current[k] || typeof current[k] !== 'object') {
+          current[k] = {};
+        }
+        current = current[k];
+      }
+      
+      current[lastKey] = value;
+    }
+    
+    return nested;
   }
 
   /**

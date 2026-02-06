@@ -12,16 +12,84 @@ export class Arr {
 
   /**
    * Set value in nested object using dot notation
+   * Now with deep merge support - preserves existing nested properties
    */
   static set(obj, path, value) {
     const keys = path.split('.');
     const lastKey = keys.pop();
     const target = keys.reduce((current, key) => {
-      if (!current[key]) current[key] = {};
+      if (!current[key] || typeof current[key] !== 'object') {
+        current[key] = {};
+      }
       return current[key];
     }, obj);
-    target[lastKey] = value;
+    
+    // Deep merge if both are objects
+    if (typeof target[lastKey] === 'object' && target[lastKey] !== null &&
+        typeof value === 'object' && value !== null &&
+        !Array.isArray(value) && !Array.isArray(target[lastKey])) {
+      target[lastKey] = this.deepMerge(target[lastKey], value);
+    } else {
+      target[lastKey] = value;
+    }
+    
     return obj;
+  }
+
+  /**
+   * Deep merge two objects
+   */
+  static deepMerge(target, source) {
+    const result = { ...target };
+    
+    for (const key in source) {
+      if (source.hasOwnProperty(key)) {
+        if (typeof source[key] === 'object' && source[key] !== null &&
+            !Array.isArray(source[key]) &&
+            typeof result[key] === 'object' && result[key] !== null &&
+            !Array.isArray(result[key])) {
+          result[key] = this.deepMerge(result[key], source[key]);
+        } else {
+          result[key] = source[key];
+        }
+      }
+    }
+    
+    return result;
+  }
+
+  /**
+   * Transform flat dot-notation keys into nested object structure
+   * Example: { 'mail.from.address': 'test@app.com' } => { mail: { from: { address: 'test@app.com' } } }
+   */
+  static undot(flatObject) {
+    const nested = {};
+    
+    for (const [key, value] of Object.entries(flatObject)) {
+      this.set(nested, key, value);
+    }
+    
+    return nested;
+  }
+
+  /**
+   * Flatten nested object into dot-notation keys
+   * Example: { mail: { from: { address: 'test@app.com' } } } => { 'mail.from.address': 'test@app.com' }
+   */
+  static dot(obj, prefix = '') {
+    const result = {};
+    
+    for (const [key, value] of Object.entries(obj)) {
+      const newKey = prefix ? `${prefix}.${key}` : key;
+      
+      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+        Object.assign(result, this.dot(value, newKey));
+      } else {
+        result[newKey] = value;
+      }
+    }
+    
+    return result;
   }
 
   /**

@@ -1,7 +1,221 @@
 # Changelog
 
 All notable changes to Vasuzex will be documented in this file.
+## [2.2.0] - 2026-02-06
 
+### 🚀 Major Pro-Level Enhancements
+
+This release brings vasuzex to Laravel-level flexibility and power with critical bug fixes and industry-standard features.
+
+### ✨ Added
+
+#### Environment-Specific Configuration Files
+- **Multi-environment .env support** - Load environment-specific configuration files
+  - `.env` - Base configuration (committed as example)
+  - `.env.local` - Local overrides (gitignored)
+  - `.env.development` - Development environment
+  - `.env.production` - Production environment  
+  - `.env.test` - Test environment
+  - `.env.{environment}.local` - Environment + local overrides
+- **Load cascade** - Later files override earlier (same as Next.js, Vite, Laravel)
+- **Quote parsing** - Properly handles quoted values in .env files
+  ```bash
+  APP_NAME="My App"  # Correctly parsed without quotes
+  ```
+
+#### Deep Configuration Merge
+- **Fixed critical bug** - Database configs now properly merge with nested structures
+- **`Arr.undot()`** - Transform flat keys to nested objects
+  ```javascript
+  { 'mail.mailers.mailjet.api_key': 'xxx' }
+  // Becomes:
+  { mail: { mailers: { mailjet: { api_key: 'xxx' } } } }
+  ```
+- **`Arr.dot()`** - Flatten nested objects to dot notation
+- **`Arr.deepMerge()`** - Deep merge objects preserving nested properties
+- **Enhanced `Arr.set()`** - Now preserves existing nested properties during set operations
+
+#### Runtime Configuration Management
+- **`Config.reloadFromDatabase(app)`** - Reload database configs without restart
+- **`Config.getNested(prefix)`** - Get all configs under a prefix as nested object
+- **`Mail.clearCache(mailerName)`** - Clear cached mail transports
+- **`Mail.reload(mailerName)`** - Reload mail transport with fresh config
+- **`Mail.getCacheInfo()`** - Get transport cache statistics
+
+### 🐛 Fixed
+
+#### DatabaseConfigService Deep Merge Bug (CRITICAL)
+- **Issue**: Database configs with nested keys (e.g., `mail.mailers.mailjet.api_key`) were not properly loaded
+- **Root Cause**: Flat keys from database weren't transformed to nested structure before merging into ConfigRepository
+- **Impact**: Made database-driven configuration unusable for nested configs (mail, database, payment gateways, etc.)
+- **Solution**: Added `#transformFlatKeysToNested()` method that uses `Arr.undot()` to properly structure configs
+- **Result**: Database configs now work exactly like Laravel - can override any nested config value
+
+#### ConfigLoader Environment Loading
+- **Issue**: Only loaded `.env` file, no environment-specific support
+- **Solution**: Now loads multiple .env files in correct cascade order
+- **Benefit**: Matches industry standards (Next.js, Vite, Create React App)
+
+#### Arr.set() Object Overwriting
+- **Issue**: Setting nested values would overwrite existing nested objects
+- **Example Problem**:
+  ```javascript
+  const obj = { mail: { from: { name: 'App', address: 'app@test.com' } } };
+  Arr.set(obj, 'mail.from.reply', 'reply@test.com');
+  // Lost name and address properties
+  ```
+- **Solution**: Added deep merge logic to preserve existing nested properties
+
+#### .env Quote Parsing
+- **Issue**: Quoted values included the quotes
+  ```bash
+  APP_NAME="My App"  # Resulted in: "My App" (with quotes)
+  ```
+- **Solution**: Strip surrounding quotes properly
+
+### 🔄 Changed
+
+#### ConfigLoader Behavior
+- **Before**: Only loaded `.env`, failed silently if missing
+- **After**: Loads multiple environment files in cascade, reports how many loaded
+- **Breaking**: None - fully backward compatible
+
+#### MailManager Caching
+- **Before**: No way to clear cached transports (required app restart)
+- **After**: Can clear cache and reload with `clearCache()` and `reload()`
+- **Breaking**: None - additive changes only
+
+### 📝 Documentation
+
+#### New Examples
+```javascript
+// Environment-specific .env files
+// .env.development
+MAIL_DRIVER=log
+DB_HOST=localhost
+
+// .env.production  
+MAIL_DRIVER=mailjet
+DB_HOST=production-db.example.com
+
+// Runtime config reload
+await Config.reloadFromDatabase(app);
+Mail.clearCache('mailjet');
+
+// Database-driven mail config (now works!)
+await DatabaseConfigService.set('mail.mailers.mailjet.api_key', 'xxx', {
+  scope: 'api',
+  environment: 'production'
+});
+
+// Clear cache and use new config
+Mail.clearCache('mailjet');
+await Mail.send({ to: 'user@example.com', subject: 'Test' });
+```
+
+### ⚠️ Migration Guide
+
+#### From v2.1.x to v2.2.0
+
+**No breaking changes!** All enhancements are backward-compatible.
+
+**Optional Enhancements**:
+
+1. **Split .env by environment**:
+```bash
+# Create environment-specific files
+cp .env .env.development
+cp .env .env.production
+
+# Update .gitignore
+echo ".env.local" >> .gitignore
+echo ".env.*.local" >> .gitignore
+```
+
+2. **Move sensitive configs to database**:
+```javascript
+// Instead of .env:
+MAILJET_API_KEY=xxx
+
+// Use database (now works with nested keys!):
+await Config.setInDatabase('mail.mailers.mailjet.api_key', 'xxx');
+```
+
+3. **Enable runtime config changes**:
+```javascript
+// In admin panel when user updates mail settings:
+await DatabaseConfigService.set('mail.mailers.mailjet.api_key', newKey);
+await Config.reloadFromDatabase(app);
+Mail.clearCache('mailjet');
+```
+
+### 🎯 Laravel Feature Parity
+
+| Feature | Laravel | Vasuzex 2.1.x | Vasuzex 2.2.0 |
+|---------|---------|---------------|---------------|
+| Environment-specific .env | ✅ | ❌ | ✅ |
+| Database-driven config | ✅ | ⚠️ Buggy | ✅ |
+| Runtime config override | ✅ | ✅ | ✅ |
+| Deep config merge | ✅ | ❌ | ✅ |
+| Config caching | ✅ | ⚠️ Partial | ✅ |
+| Nested config access | ✅ | ✅ | ✅ |
+| .env quote parsing | ✅ | ❌ | ✅ |
+
+### 🔍 Testing
+
+- ✅ Unit tests for `Arr.undot()`, `Arr.dot()`, `Arr.deepMerge()`
+- ✅ Integration tests for DatabaseConfigService nested configs
+- ✅ Environment cascade loading tests
+- ✅ Runtime config reload tests
+- ✅ Mail transport cache clearing tests
+- ✅ Backward compatibility tests
+
+### 📦 Dependencies
+
+No new dependencies added. All enhancements use existing framework code.
+
+### 🙏 Credits
+
+Inspired by:
+- Laravel's configuration system
+- Next.js environment file handling
+- dotenv-flow cascade loading
+- Community feedback on configuration flexibility
+
+---
+
+## [2.1.35] - 2026-02-06
+
+### Fixed
+- MailManager async/await issues with transport creation
+- Added nodemailer and node-mailjet dependencies
+- Mailjet transport integration
+
+## [2.1.34] - 2026-02-06
+
+### Added
+- Debug logging for config loading
+
+## [2.1.32] - 2026-02-06
+
+### Added  
+- Mailjet transport support in MailManager
+
+## [2.1.31] - 2026-02-06
+
+### Added
+- nodemailer and nodemailer-sendgrid dependencies
+
+## [2.1.30] - 2026-02-06
+
+### Fixed
+- MailManager mailer() and resolve() now properly async/await
+
+---
+
+## Previous Versions
+
+See git history for versions before 2.1.30.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 

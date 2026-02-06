@@ -31,11 +31,11 @@ export class MailManager {
   /**
    * Get mailer instance
    */
-  mailer(name = null) {
+  async mailer(name = null) {
     name = name || this.getDefaultDriver();
 
     if (!this.mailers[name]) {
-      this.mailers[name] = this.resolve(name);
+      this.mailers[name] = await this.resolve(name);
     }
 
     return this.mailers[name];
@@ -45,7 +45,7 @@ export class MailManager {
    * Resolve mailer
    * @private
    */
-  resolve(name) {
+  async resolve(name) {
     const config = this.getConfig(name);
 
     if (!config || !config.transport) {
@@ -55,13 +55,13 @@ export class MailManager {
     const transport = config.transport;
 
     if (this.customCreators[transport]) {
-      return this.customCreators[transport](this.app, config);
+      return await this.customCreators[transport](this.app, config);
     }
 
     const method = `create${this.capitalize(transport)}Transport`;
     
     if (typeof this[method] === 'function') {
-      return this[method](config);
+      return await this[method](config);
     }
 
     throw new Error(`Mail transport [${transport}] is not supported.`);
@@ -99,6 +99,91 @@ export class MailManager {
   }
 
   /**
+   * Create Mailjet transport
+   * @private
+   */
+  async createMailjetTransport(config) {
+    const nodemailer = await import('nodemailer');
+    const Mailjet = await import('node-mailjet');
+    
+    // Validate credentials
+    if (!config.api_key || !config.api_secret) {
+      throw new Error(`Mailjet credentials missing. api_key: ${!!config.api_key}, api_secret: ${!!config.api_secret}`);
+    }
+    
+    // Create Mailjet client
+    const mailjetClient = Mailjet.default.apiConnect(
+      config.api_key,
+      config.api_secret
+    );
+    
+    // Create custom transport for nodemailer
+    const mailjetTransport = {
+      name: 'mailjet',
+      version: '1.0.0',
+      send: async (mail, callback) => {
+        try {
+          const info = mail.message.createReadStream();
+          const chunks = [];
+          
+          info.on('data', (chunk) => chunks.push(chunk));
+          info.on('end', async () => {
+            try {
+              const rawEmail = Buffer.concat(chunks).toString();
+              const recipients = [];
+              
+              // Parse recipients
+              if (mail.data.to) {
+                const toAddresses = Array.isArray(mail.data.to) ? mail.data.to : [mail.data.to];
+                toAddresses.forEach(addr => {
+                  const email = typeof addr === 'string' ? addr : addr.address;
+                  recipients.push({ Email: email });
+                });
+              }
+              
+              // Prepare Mailjet message
+              const messages = [{
+                From: {
+                  Email: typeof mail.data.from === 'string' 
+                    ? mail.data.from.match(/<(.+)>/)?.[1] || mail.data.from
+                    : mail.data.from.address,
+                  Name: typeof mail.data.from === 'string'
+                    ? mail.data.from.match(/^(.+?)\s*</)?.[1] || ''
+                    : mail.data.from.name || ''
+                },
+                To: recipients,
+                Subject: mail.data.subject,
+                TextPart: mail.data.text || '',
+                HTMLPart: mail.data.html || ''
+              }];
+              
+              // Send via Mailjet
+              const result = await mailjetClient
+                .post('send', { version: 'v3.1' })
+                .request({ Messages: messages });
+              
+              callback(null, {
+                messageId: result.body.Messages[0].To[0].MessageID,
+                response: result.body
+              });
+            } catch (error) {
+              callback(error);
+            }
+          });
+          
+          info.on('error', (error) => {
+            callback(error);
+          });
+        } catch (error) {
+          callback(error);
+        }
+      }
+    };
+    
+    return nodemailer.default.createTransport(mailjetTransport);
+  }
+
+  /**
    * Register custom creator
    */
   extend(transport, creator) {
@@ -112,7 +197,8 @@ export class MailManager {
    */
   getConfig(name) {
     const mailers = this.app.config('mail.mailers', {});
-    return mailers[name];
+    const config = mailers[name];
+    return config;
   }
 
   /**
@@ -135,8 +221,59 @@ export class MailManager {
    * Send mail (proxy to default mailer)
    */
   async send(options) {
-    const mailer = this.mailer();
+    const mailer = await this.mailer();
     return await mailer.sendMail(options);
+  }
+
+  /**
+   * Clear cached transport(s)
+   * Allows runtime config changes to take effect
+   * 
+   * @param {string|null} mailerName - Specific mailer to clear, or null to clear all
+   * @example
+   * // Clear specific mailer
+   * Mail.clearCache('mailjet');
+   * 
+   * // Clear all cached transports
+   * Mail.clearCache();
+   */
+  clearCache(mailerName = null) {
+    if (mailerName) {
+      delete this.transports[mailerName];
+      console.log(`[MailManager] Cleared cache for mailer: ${mailerName}`);
+    } else {
+      this.transports = {};
+      console.log('[MailManager] Cleared all mail transport caches');
+    }
+  }
+
+  /**
+   * Reload mailer with fresh config
+   * Clears cache and recreates transport
+   * 
+   * @param {string|null} mailerName - Specific mailer to reload, or null for default
+   * @returns {Promise<Object>} Fresh mailer transport
+   * @example
+   * // Reload default mailer
+   * await Mail.reload();
+   * 
+   * // Reload specific mailer
+   * await Mail.reload('mailjet');
+   */
+  async reload(mailerName = null) {
+    this.clearCache(mailerName);
+    return await this.mailer(mailerName);
+  }
+
+  /**
+   * Get cache statistics
+   * @returns {Object} Cache information
+   */
+  getCacheInfo() {
+    return {
+      cachedTransports: Object.keys(this.transports),
+      count: Object.keys(this.transports).length,
+    };
   }
 }
 

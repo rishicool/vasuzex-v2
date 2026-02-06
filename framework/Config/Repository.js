@@ -151,6 +151,65 @@ export class ConfigRepository {
   clear() {
     this.#items = {};
   }
+
+  /**
+   * Reload configuration from database
+   * Useful for runtime config changes without restart
+   * 
+   * @param {Application} app - Application instance (optional, for accessing DatabaseConfigService)
+   * @returns {Promise<void>}
+   * @example
+   * // Reload database configs
+   * await Config.reloadFromDatabase(app);
+   */
+  async reloadFromDatabase(app) {
+    if (!app) {
+      console.warn('[ConfigRepository] Cannot reload from database: app instance not provided');
+      return;
+    }
+
+    try {
+      const dbConfigService = app.make('db.config');
+      if (dbConfigService) {
+        await dbConfigService.reload();
+        console.log('[ConfigRepository] Reloaded configs from database');
+      }
+    } catch (error) {
+      console.error('[ConfigRepository] Failed to reload from database:', error.message);
+    }
+  }
+
+  /**
+   * Get nested configuration as object
+   * @param {string} prefix - Prefix to filter by
+   * @returns {Object}
+   * @example
+   * config.getNested('mail'); // Returns all mail.* configs as nested object
+   */
+  getNested(prefix) {
+    const result = {};
+    const prefixWithDot = prefix + '.';
+    
+    for (const [key, value] of Object.entries(this.#items)) {
+      if (key === prefix) {
+        return value;
+      }
+      if (key.startsWith(prefixWithDot)) {
+        const subKey = key.substring(prefixWithDot.length);
+        const keys = subKey.split('.');
+        let current = result;
+        
+        for (let i = 0; i < keys.length - 1; i++) {
+          if (!current[keys[i]]) current[keys[i]] = {};
+          current = current[keys[i]];
+        }
+        
+        current[keys[keys.length - 1]] = value;
+      }
+    }
+    
+    return result;
+  }
 }
 
 export default ConfigRepository;
