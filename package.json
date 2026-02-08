@@ -108,7 +108,7 @@
     "express-rate-limit": "^8.2.1",
     "firebase-admin": "^13.6.0",
     "fs-extra": "^11.3.2",
-    "guruorm": "^2.0.19",
+    "guruorm": "^2.0.20",
     "helmet": "^8.1.0",
     "inquirer": "^9.3.8",
     "ip2location-nodejs": "^9.7.0",
