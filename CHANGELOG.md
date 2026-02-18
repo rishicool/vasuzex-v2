@@ -1,6 +1,58 @@
 # Changelog
 
 All notable changes to Vasuzex will be documented in this file.
+
+## [2.3.0] - 2026-02-18
+
+### 🚀 Standalone Script Support
+
+This release enables Config and Log facades to work in standalone scripts without Application instance, following Laravel's graceful degradation pattern.
+
+### ✨ Added
+
+#### Config Facade Standalone Mode
+- **Standalone script support** - Config.get() now works without Application instance
+- **Auto-discovery** - Walks up directory tree to find project root with `config/` directory
+- **Config loading** - Loads all .cjs files from `config/` directory using require()
+- **Dot notation** - Full support for nested keys (`database.connections.default.host`)
+- **Caching** - Loaded config cached for performance
+- **Graceful fallback** - Tries Application-bound service first, falls back if unavailable
+  ```javascript
+  // Now works in standalone scripts!
+  import { Config } from 'vasuzex';
+  const dbHost = Config.get('database.connections.default.host', 'localhost');
+  ```
+
+#### Log Facade Standalone Mode
+- **Standalone script support** - Log methods now work without Application instance
+- **Console fallback** - Falls back to console.log with structured formatting
+- **ISO timestamps** - Production-quality log output: `[2026-02-18T05:21:16.107Z] [INFO] message`
+- **Respects LOG_LEVEL** - Debug logs only show if `LOG_LEVEL=debug` or `DEBUG=true`
+- **All log levels** - debug(), info(), warn(), error() all supported
+- **Graceful fallback** - Tries Application-bound logger first, falls back if unavailable
+  ```javascript
+  // Now works in standalone scripts!
+  import { Log } from 'vasuzex';
+  Log.info('Processing data', { records: 100 });
+  // Output: [2026-02-18T05:21:16.107Z] [INFO] Processing data {"records":100}
+  ```
+
+### 🔧 Technical Details
+
+- **Service container priority** - Always tries Application instance first (backward compatible)
+- **Zero breaking changes** - All existing apps continue working unchanged
+- **Laravel pattern** - Follows Laravel's facade graceful degradation pattern
+- **Production-ready** - Proper error handling, silent failures, performance optimized
+
+### 🎯 Use Cases
+
+This enables:
+- ✅ Database migration scripts using Config.get()
+- ✅ Cron jobs and workers using Log.info()
+- ✅ CLI tools without full Application bootstrap
+- ✅ Test scripts accessing configuration
+- ✅ Utility scripts with proper logging
+
 ## [2.2.0] - 2026-02-06
 
 ### 🚀 Major Pro-Level Enhancements
