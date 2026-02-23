@@ -144,8 +144,11 @@ export async function createDatabase() {
     console.log(`📦 Creating database: ${dbName}...`);
     
     // Try to create database using psql
+    // CRITICAL FIX: Connect to 'postgres' database (not default user database) when checking/creating target database
+    // Without -d postgres, psql tries to connect to database matching username (e.g., "neasto_user" database)
+    // This causes "FATAL: database 'neasto_user' does not exist" when POSTGRES_USER=neasto_user
     execSync(
-      `PGPASSWORD="${process.env.POSTGRES_PASSWORD}" psql -h ${dbHost} -p ${dbPort} -U ${dbUser} -tc "SELECT 1 FROM pg_database WHERE datname = '${dbName}'" | grep -q 1 || PGPASSWORD="${process.env.POSTGRES_PASSWORD}" psql -h ${dbHost} -p ${dbPort} -U ${dbUser} -c "CREATE DATABASE ${dbName}"`,
+      `PGPASSWORD="${process.env.POSTGRES_PASSWORD}" psql -h ${dbHost} -p ${dbPort} -U ${dbUser} -d postgres -tc "SELECT 1 FROM pg_database WHERE datname = '${dbName}'" | grep -q 1 || PGPASSWORD="${process.env.POSTGRES_PASSWORD}" psql -h ${dbHost} -p ${dbPort} -U ${dbUser} -d postgres -c "CREATE DATABASE ${dbName}"`,
       { stdio: 'inherit' }
     );
     

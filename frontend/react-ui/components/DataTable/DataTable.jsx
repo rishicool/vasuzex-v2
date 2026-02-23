@@ -10,6 +10,7 @@
  * - Rows per page selector
  * - Action buttons (edit/view/delete/switch)
  * - Loading and empty states
+ * - State persistence (restores page/filters when navigating back)
  * 
  * @module components/DataTable
  */
@@ -38,6 +39,8 @@ import { Pagination } from "./Pagination.jsx";
  * @param {string} props.initialStatusFilter - Initial status filter (all/true/false)
  * @param {number} props.initialLimit - Initial rows per page
  * @param {string} props.emptyText - Text to show when no data
+ * @param {boolean} props.persistState - Enable state persistence (default: true)
+ * @param {string} props.stateKey - Custom key for state storage (default: derived from apiUrl)
  */
 export function DataTable(props) {
   // Internal refresh key for self-refresh
@@ -60,12 +63,74 @@ export function DataTable(props) {
     onDelete,
     onToggle,
     api, // API client instance passed as prop
+    persistState = true, // Enable state persistence by default
+    stateKey, // Optional custom state key
   } = props;
 
   // Validate that api client is provided
   if (!api) {
     throw new Error('DataTable requires "api" prop - pass your API client instance');
   }
+
+  // Generate unique storage key based on apiUrl or custom stateKey
+  const storageKey = React.useMemo(() => {
+    if (stateKey) return `datatable_${stateKey}`;
+    // Use apiUrl as key (remove query params for consistency)
+    const cleanUrl = apiUrl.split('?')[0];
+    return `datatable_${cleanUrl.replace(/[^a-zA-Z0-9]/g, '_')}`;
+  }, [apiUrl, stateKey]);
+
+  // Helper to load persisted state
+  const loadPersistedState = React.useCallback(() => {
+    if (!persistState) return null;
+    try {
+      const stored = sessionStorage.getItem(storageKey);
+      return stored ? JSON.parse(stored) : null;
+    } catch (error) {
+      return null;
+    }
+  }, [persistState, storageKey]);
+
+  // Helper to save state
+  const saveState = React.useCallback((state) => {
+    if (!persistState) return;
+    try {
+      sessionStorage.setItem(storageKey, JSON.stringify(state));
+    } catch (error) {
+      // Silently fail if sessionStorage is not available
+    }
+  }, [persistState, storageKey]);
+
+  // Initialize state from persisted data or props
+  const persistedState = loadPersistedState();
+  
+  const [page, setPage] = React.useState(persistedState?.page || initialPage);
+  const [sortBy, setSortBy] = React.useState(
+    persistedState?.sortBy || initialSortBy || (columns.find((c) => c.sortable)?.field) || "",
+  );
+  const [sortOrder, setSortOrder] = React.useState(persistedState?.sortOrder || initialSortOrder);
+  const [search, setSearch] = React.useState(persistedState?.search || initialSearch || "");
+  const [statusFilter, setStatusFilter] = React.useState(persistedState?.statusFilter || initialStatusFilter || "all");
+  const [limit, setLimit] = React.useState(persistedState?.limit || initialLimit || 10);
+  const [data, setData] = React.useState([]);
+  const [loading, setLoading] = React.useState(false);
+  const [totalPages, setTotalPages] = React.useState(1);
+  const [totalItems, setTotalItems] = React.useState(0);
+  // Column search state
+  const [columnSearch, setColumnSearch] = React.useState(persistedState?.columnSearch || {});
+  
+  // Save state whenever it changes
+  React.useEffect(() => {
+    saveState({
+      page,
+      sortBy,
+      sortOrder,
+      search,
+      statusFilter,
+      limit,
+      columnSearch,
+    });
+  }, [page, sortBy, sortOrder, search, statusFilter, limit, columnSearch, saveState]);
 
   const handleStatusToggle = async (row) => {
     if (!toggleLink) return;
@@ -81,21 +146,6 @@ export function DataTable(props) {
       toast.error(error.message || "Failed to update status");
     }
   };
-
-  const [page, setPage] = React.useState(initialPage);
-  const [sortBy, setSortBy] = React.useState(
-    initialSortBy || (columns.find((c) => c.sortable)?.field) || "",
-  );
-  const [sortOrder, setSortOrder] = React.useState(initialSortOrder);
-  const [search, setSearch] = React.useState(initialSearch || "");
-  const [statusFilter, setStatusFilter] = React.useState(initialStatusFilter || "all");
-  const [limit, setLimit] = React.useState(initialLimit || 10);
-  const [data, setData] = React.useState([]);
-  const [loading, setLoading] = React.useState(false);
-  const [totalPages, setTotalPages] = React.useState(1);
-  const [totalItems, setTotalItems] = React.useState(0);
-  // Column search state
-  const [columnSearch, setColumnSearch] = React.useState({});
   
   // Reset page to 1 when columnSearch changes
   React.useEffect(() => {
