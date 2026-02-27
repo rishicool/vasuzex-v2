@@ -14,3 +14,4 @@ export { useDebounce } from './useDebounce.js';
 export { useFocusTrap } from './useFocusTrap.js';
 export { useAnnouncer } from './useAnnouncer.js';
 export { useKeyboardNavigation } from './useKeyboardNavigation.js';
+export { useListNavigation } from './useListNavigation.js';
