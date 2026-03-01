@@ -139,6 +139,11 @@ export class BaseApp extends Application {
    * Core middleware for parsing JSON and URL-encoded request bodies
    */
   setupBodyParsing() {
+    // Configure query parser to support nested bracket notation (e.g. filters[name]=value)
+    // Express 5 defaults to 'simple' (Node's querystring) which does not parse brackets
+    // 'extended' uses qs.parse which correctly handles nested objects
+    this.express.set('query parser', 'extended');
+
     // Parse JSON request bodies
     this.express.use(express.json());
     

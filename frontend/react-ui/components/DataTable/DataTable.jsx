@@ -186,10 +186,10 @@ export function DataTable(props) {
     // Only add non-default values to keep URL clean
     if (state.page !== 1) params.set('page', state.page);
     if (state.sortBy) params.set('sortBy', state.sortBy);
-    if (state.sortOrder !== 'asc') params.set('sortOrder', state.sortOrder);
+    if (state.sortOrder !== initialSortOrder) params.set('sortOrder', state.sortOrder);
     if (state.search) params.set('search', state.search);
     if (state.statusFilter !== 'all') params.set('statusFilter', state.statusFilter);
-    if (state.limit !== 10) params.set('limit', state.limit);
+    if (state.limit !== (initialLimit || 10)) params.set('limit', state.limit);
     
     // Add column search params
     Object.entries(state.columnSearch || {}).forEach(([field, value]) => {
