@@ -201,10 +201,15 @@ export class BaseService {
       relationJoins = {},     // Relations to join for sorting: { 'user.name': { relation: 'user', foreignKey: 'user_id', table: 'users' } }
       filters = null,         // Custom filters function
       relations = [],         // Relations to load
-      withAggregates = {}     // Relationship aggregates: { avg: [['ratings', 'rating']], count: ['orders'], sum: [['sales', 'amount']] }
+      withAggregates = {},    // Relationship aggregates: { avg: [['ratings', 'rating']], count: ['orders'], sum: [['sales', 'amount']] }
+      trashed = 'without'     // 'without' = default (exclude deleted), 'with' = include deleted, 'only' = only deleted
     } = options;
 
-    let query = Model.query();
+    let query = trashed === 'with'
+      ? Model.withTrashed()
+      : trashed === 'only'
+        ? Model.onlyTrashed()
+        : Model.query();
     const modelTable = Model.table;
     const hasRelationJoin = !!relationJoins[sortBy];
 
