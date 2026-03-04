@@ -58,6 +58,7 @@ try {
  * @param {number} props.initialLimit - Initial rows per page
  * @param {string} props.emptyText - Text to show when no data
  * @param {boolean} props.persistState - Enable URL state persistence (default: true)
+ * @param {Object} props.stickyParams - Extra params always preserved in the URL (e.g. { trashed: 'only' })
  */
 export function DataTable(props) {
   // Internal refresh key for self-refresh
@@ -81,6 +82,7 @@ export function DataTable(props) {
     onToggle,
     api, // API client instance passed as prop
     persistState = true, // Enable URL-based state persistence by default
+    stickyParams = {}, // Extra URL params always preserved (e.g. trashed filter)
   } = props;
 
   // Validate that api client is provided
@@ -196,6 +198,11 @@ export function DataTable(props) {
       if (value) params.set(`columnSearch[${field}]`, value);
     });
 
+    // Preserve sticky params (e.g. trashed filter managed by parent)
+    Object.entries(stickyParams).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') params.set(key, value);
+    });
+
     // Use React Router if available, otherwise window.history
     if (hasReactRouter && setSearchParams) {
       
@@ -208,10 +215,10 @@ export function DataTable(props) {
       
       window.history.replaceState({}, '', newURL);
     }
-  }, [persistState, hasReactRouter, setSearchParams]);
+  }, [persistState, hasReactRouter, setSearchParams, stickyParams]);
 
   /**
-   * Sync URL whenever state changes
+   * Sync URL whenever state changes (stickyParams change also triggers this via updateURL dep)
    */
   React.useEffect(() => {
     updateURL({
