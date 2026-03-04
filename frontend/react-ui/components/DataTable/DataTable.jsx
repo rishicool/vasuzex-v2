@@ -183,11 +183,10 @@ export function DataTable(props) {
   const updateURL = React.useCallback((state) => {
     if (!persistState || typeof window === 'undefined') return;
 
-    // Start from the CURRENT URL so external params (e.g. trashed) are preserved.
-    // Then clear only the params DataTable owns and repopulate with new state.
-    const current = hasReactRouter && searchParams
-      ? new URLSearchParams(searchParams)
-      : new URLSearchParams(window.location.search);
+    // Always read from window.location.search (current, live URL) not from
+    // the searchParams closure — the closure can be one render behind when
+    // the parent just called setSearchParams in the same batch.
+    const current = new URLSearchParams(window.location.search);
 
     // Remove DataTable-managed params
     DT_PARAMS.forEach(k => current.delete(k));
@@ -217,7 +216,7 @@ export function DataTable(props) {
         : window.location.pathname;
       window.history.replaceState({}, '', newURL);
     }
-  }, [persistState, hasReactRouter, setSearchParams, searchParams, initialSortOrder, initialLimit]);
+  }, [persistState, hasReactRouter, setSearchParams, initialSortOrder, initialLimit]);
 
   /**
    * Sync URL whenever DataTable state changes
