@@ -58,8 +58,11 @@ try {
  * @param {number} props.initialLimit - Initial rows per page
  * @param {string} props.emptyText - Text to show when no data
  * @param {boolean} props.persistState - Enable URL state persistence (default: true)
- * @param {Object} props.stickyParams - Extra params always preserved in the URL (e.g. { trashed: 'only' })
  */
+
+// URL params that DataTable owns — all other params (e.g. trashed) are preserved as-is
+const DT_PARAMS = ['page', 'sortBy', 'sortOrder', 'search', 'statusFilter', 'limit'];
+
 export function DataTable(props) {
   // Internal refresh key for self-refresh
   const [refreshKey, setRefreshKey] = React.useState(0);
@@ -82,7 +85,6 @@ export function DataTable(props) {
     onToggle,
     api, // API client instance passed as prop
     persistState = true, // Enable URL-based state persistence by default
-    stickyParams = {}, // Extra URL params always preserved (e.g. trashed filter)
   } = props;
 
   // Validate that api client is provided
@@ -181,44 +183,44 @@ export function DataTable(props) {
   const updateURL = React.useCallback((state) => {
     if (!persistState || typeof window === 'undefined') return;
 
-    
+    // Start from the CURRENT URL so external params (e.g. trashed) are preserved.
+    // Then clear only the params DataTable owns and repopulate with new state.
+    const current = hasReactRouter && searchParams
+      ? new URLSearchParams(searchParams)
+      : new URLSearchParams(window.location.search);
 
-    const params = new URLSearchParams();
-    
-    // Only add non-default values to keep URL clean
-    if (state.page !== 1) params.set('page', state.page);
-    if (state.sortBy) params.set('sortBy', state.sortBy);
-    if (state.sortOrder !== initialSortOrder) params.set('sortOrder', state.sortOrder);
-    if (state.search) params.set('search', state.search);
-    if (state.statusFilter !== 'all') params.set('statusFilter', state.statusFilter);
-    if (state.limit !== (initialLimit || 10)) params.set('limit', state.limit);
-    
+    // Remove DataTable-managed params
+    DT_PARAMS.forEach(k => current.delete(k));
+    for (const key of [...current.keys()]) {
+      if (key.startsWith('columnSearch[')) current.delete(key);
+    }
+
+    // Re-add non-default values to keep URL clean
+    if (state.page !== 1) current.set('page', state.page);
+    if (state.sortBy) current.set('sortBy', state.sortBy);
+    if (state.sortOrder !== initialSortOrder) current.set('sortOrder', state.sortOrder);
+    if (state.search) current.set('search', state.search);
+    if (state.statusFilter !== 'all') current.set('statusFilter', state.statusFilter);
+    if (state.limit !== (initialLimit || 10)) current.set('limit', state.limit);
+
     // Add column search params
     Object.entries(state.columnSearch || {}).forEach(([field, value]) => {
-      if (value) params.set(`columnSearch[${field}]`, value);
-    });
-
-    // Preserve sticky params (e.g. trashed filter managed by parent)
-    Object.entries(stickyParams).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== '') params.set(key, value);
+      if (value) current.set(`columnSearch[${field}]`, value);
     });
 
     // Use React Router if available, otherwise window.history
     if (hasReactRouter && setSearchParams) {
-      
-      setSearchParams(params, { replace: true });
+      setSearchParams(current, { replace: true });
     } else if (typeof window !== 'undefined') {
-      const newURL = params.toString() 
-        ? `${window.location.pathname}?${params.toString()}`
+      const newURL = current.toString()
+        ? `${window.location.pathname}?${current.toString()}`
         : window.location.pathname;
-      
-      
       window.history.replaceState({}, '', newURL);
     }
-  }, [persistState, hasReactRouter, setSearchParams, stickyParams]);
+  }, [persistState, hasReactRouter, setSearchParams, searchParams, initialSortOrder, initialLimit]);
 
   /**
-   * Sync URL whenever state changes (stickyParams change also triggers this via updateURL dep)
+   * Sync URL whenever DataTable state changes
    */
   React.useEffect(() => {
     updateURL({
