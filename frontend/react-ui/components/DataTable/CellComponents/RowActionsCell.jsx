@@ -26,6 +26,7 @@ import { Link } from 'react-router-dom';
  * @param {Function} props.onReject - Reject action handler (approval workflows)
  * @param {Function} props.onViewHistory - View approval history handler
  * @param {boolean} props.hasApproval - Whether to show approval actions (default: false)
+ * @param {Array} props.customActions - Extra menu items: [{ label, icon, onClick, className, condition, separator }]
  * @returns {JSX.Element}
  */
 export function RowActionsCell({
@@ -39,6 +40,7 @@ export function RowActionsCell({
   onReject,
   onViewHistory,
   hasApproval = false,
+  customActions = [],
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -157,6 +159,33 @@ export function RowActionsCell({
               </>
             )}
 
+            {/* Custom Actions */}
+            {customActions.length > 0 && (
+              <>
+                {customActions.map((action, idx) => {
+                  if (action.condition && !action.condition(row)) return null;
+                  return (
+                    <React.Fragment key={idx}>
+                      {action.separator && (
+                        <div className="border-t border-gray-200 dark:border-gray-700 my-1" />
+                      )}
+                      <button
+                        onClick={() => {
+                          action.onClick(row);
+                          setIsMenuOpen(false);
+                        }}
+                        className={`w-full flex items-center gap-3 px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 ${action.className || 'text-gray-700 dark:text-gray-300'}`}
+                      >
+                        {action.icon && <action.icon className="h-4 w-4 shrink-0" />}
+                        <span>{action.label}</span>
+                      </button>
+                    </React.Fragment>
+                  );
+                })}
+                <div className="border-t border-gray-200 dark:border-gray-700 my-1" />
+              </>
+            )}
+
             {/* Toggle Status */}
             {onToggle && (
               <button
@@ -210,6 +239,14 @@ RowActionsCell.propTypes = {
   onReject: PropTypes.func,
   onViewHistory: PropTypes.func,
   hasApproval: PropTypes.bool,
+  customActions: PropTypes.arrayOf(PropTypes.shape({
+    label: PropTypes.string.isRequired,
+    icon: PropTypes.elementType,
+    onClick: PropTypes.func.isRequired,
+    className: PropTypes.string,
+    condition: PropTypes.func,
+    separator: PropTypes.bool,
+  })),
 };
 
 export default RowActionsCell;
