@@ -77,6 +77,7 @@ export function EnhancedPhotoManager({
     deletePhoto,
     deleteMultiplePhotos,
     reorderPhotos,
+    setPrimaryPhoto,
   } = photosHook;
 
   const [selectedPhotos, setSelectedPhotos] = useState([]);
@@ -255,6 +256,7 @@ export function EnhancedPhotoManager({
                   isSelected={selectedPhotos.includes(photo.id)}
                   onSelect={handlePhotoSelect}
                   onDelete={handlePhotoDelete}
+                  onSetPrimary={setPrimaryPhoto || undefined}
                   disabled={loading}
                 />
               ))}
@@ -294,6 +296,7 @@ EnhancedPhotoManager.propTypes = {
     deletePhoto: PropTypes.func,
     deleteMultiplePhotos: PropTypes.func,
     reorderPhotos: PropTypes.func,
+    setPrimaryPhoto: PropTypes.func,
   }).isRequired,
   /** Section title */
   title: PropTypes.string,
