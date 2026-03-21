@@ -34,7 +34,10 @@ export class Model extends GuruORMModel {
 
   // Boot tracking
   static booted = false;
-  static globalScopes = {};
+  // NOTE: Do NOT re-declare globalScopes here.
+  // GuruORM already initialises it as `new Map()` on the base Model class.
+  // Overriding with `{}` would break applyScopes() → getGlobalScopes() which
+  // calls map.get() — crashing any model that registers a global scope.
 
   // Event dispatcher
   static dispatcher = null;
@@ -140,15 +143,15 @@ export class Model extends GuruORMModel {
   }
 
   /**
-   * Set attribute with mutator support
+   * Set attribute with mutator support.
+   * Delegates accessor lookup to GuruORM's cached getMutator().
    */
   setAttribute(key, value) {
     // Skip mutators when hydrating from database
     if (!this.isHydrating) {
-      // Check if mutator exists (setXxxAttribute method)
-      const mutator = `set${this.studly(key)}Attribute`;
-      if (typeof this[mutator] === 'function') {
-        const result = this[mutator](value);
+      const mutator = this.getMutator(key); // cached in GuruORM core
+      if (mutator !== null) {
+        const result = mutator.call(this, value);
         // If mutator returns a promise, store it for later resolution
         if (result instanceof Promise) {
           this.pendingMutators.push(result);
@@ -169,25 +172,21 @@ export class Model extends GuruORMModel {
   }
 
   /**
-   * Get attribute with accessor support and lazy loading
-   * Calls GuruORM's getAttribute to get lazy loading support
+   * Get attribute with accessor support and lazy loading.
+   * Delegates accessor lookup to GuruORM's cached getAccessor().
    */
   getAttribute(key) {
-    // Check if accessor exists (getXxxAttribute method)
-    const accessor = `get${this.studly(key)}Attribute`;
-    if (typeof this[accessor] === 'function') {
-      return this[accessor](this.attributes[key]);
+    const accessor = this.getAccessor(key); // cached in GuruORM core
+    if (accessor !== null) {
+      return accessor.call(this, this.attributes[key]);
     }
 
-    // Check if appended (computed attributes)
+    // Safety: appended (computed) attributes without an accessor return null
     if (this.constructor.appends.includes(key)) {
-      return this[accessor] ? this[accessor]() : null;
+      return null;
     }
 
-    // Delegate to GuruORM's getAttribute for:
-    // - Lazy loading of relationships
-    // - Loaded relations
-    // - Attributes with casting
+    // Delegate to GuruORM's getAttribute for lazy loading, relations, and casts
     return super.getAttribute(key);
   }
 
@@ -755,20 +754,10 @@ export class Model extends GuruORMModel {
   static async find(id) {
     try {
       const pk = this.primaryKey || 'id';
-      let query = this.where(pk, id);
-      
-      // Apply soft deletes
-      if (this.softDeletes) {
-        query = query.whereNull(this.deletedAt);
-      }
-
-      const result = await query.first();
-
-      if (!result) {
-        return null;
-      }
-
-      return this.newFromBuilder(result);
+      // Note: this.where() calls this.query() which already applies the soft-delete
+      // scope via whereNull(qualifiedColumn). Do NOT add whereNull again here.
+      // GuruORM Builder.first() returns a hydrated model instance (or null) directly.
+      return await this.where(pk, id).first();
     } catch (error) {
       // Log database error if logger is available
       if (this.logger) {
@@ -797,35 +786,19 @@ export class Model extends GuruORMModel {
    * Get all records (override GuruORM's all)
    */
   static async all() {
-    let query = this.query();
-    
-    // Apply soft deletes
-    if (this.softDeletes) {
-      query = query.whereNull(this.deletedAt);
-    }
-
-    const results = await query.get();
-    return results.map(result => this.newFromBuilder(result));
+    // query() already applies the soft-delete scope - no duplicate whereNull needed.
+    // GuruORM Builder.get() returns a Collection of hydrated model instances.
+    // Spread into a plain Array to maintain the same return type as before.
+    return [...await this.query().get()];
   }
 
   /**
    * Get first record
    */
   static async first() {
-    let query = this.query();
-    
-    // Apply soft deletes
-    if (this.softDeletes) {
-      query = query.whereNull(this.deletedAt);
-    }
-
-    const result = await query.first();
-    
-    if (!result) {
-      return null;
-    }
-
-    return this.newFromBuilder(result);
+    // query() already applies the soft-delete scope.
+    // GuruORM Builder.first() returns a hydrated model instance or null directly.
+    return await this.query().first();
   }
 
   /**
@@ -833,31 +806,24 @@ export class Model extends GuruORMModel {
    */
   static async paginate(perPage = null, page = 1) {
     perPage = perPage || this.perPage;
-    
     const offset = (page - 1) * perPage;
-    
-    let query = this.query();
-    
-    // Apply soft deletes
-    if (this.softDeletes) {
-      query = query.whereNull(this.deletedAt);
-    }
 
-    const countResult = await query.count('* as count');
-    const totalCount = countResult[0]?.count || 0;
-    
-    const results = await query.limit(perPage).offset(offset).get();
-
-    const items = results.map(result => this.newFromBuilder(result));
+    // Use two separate queries:
+    //  1. count query  — GuruORM's count() returns a plain number, not an array.
+    //  2. data query   — limit/offset applied on its own fresh builder.
+    // Both go through this.query() which already applies the soft-delete scope.
+    // Do NOT add whereNull again here — that would produce a duplicate SQL condition.
+    const totalCount = await this.query().count();
+    const items = [...await this.query().limit(perPage).offset(offset).get()];
 
     return {
       data: items,
       total: totalCount,
       perPage,
       currentPage: page,
-      lastPage: Math.ceil(totalCount / perPage),
+      lastPage: Math.ceil(totalCount / perPage) || 1,
       from: offset + 1,
-      to: offset + items.length
+      to: offset + items.length,
     };
   }
 
@@ -887,17 +853,24 @@ export class Model extends GuruORMModel {
       query = query.whereNull(qualifiedColumn);
     }
 
-    // Monkey-patch the update method to add timestamps
-    const modelClass = this;
-    const originalUpdate = query.update;
-    
-    query.update = async function(data) {
-      // Add updated_at if timestamps are enabled
-      if (modelClass.timestamps && modelClass.updatedAt && data[modelClass.updatedAt] === undefined) {
-        data[modelClass.updatedAt] = new Date();
+    // Inject updated_at on bulk Builder-level updates (e.g. User.where(...).update({}))
+    // Cache the wrapper closure per model class so it is created only ONCE, not on
+    // every query() call (which would allocate a new closure per DB operation).
+    if (this.timestamps && this.updatedAt) {
+      if (!Object.prototype.hasOwnProperty.call(this, '_cachedUpdateFn')) {
+        const modelClass = this;
+        // query.update is EloquentBuilder.prototype.update — a stable reference
+        // captured once and reused for the lifetime of this model class.
+        const protoUpdate = query.update;
+        this._cachedUpdateFn = async function timestampedUpdate(data) {
+          if (data[modelClass.updatedAt] === undefined) {
+            data[modelClass.updatedAt] = new Date();
+          }
+          return protoUpdate.call(this, data);
+        };
       }
-      return await originalUpdate.call(this, data);
-    };
+      query.update = this._cachedUpdateFn;
+    }
 
     return query;
   }

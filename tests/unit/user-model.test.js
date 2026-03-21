@@ -29,7 +29,9 @@ describe('User Model - Unit Tests', () => {
 
   describe('Model Configuration', () => {
     it('should have correct table name', () => {
-      expect(User.tableName).toBe('users');
+      // User defines `static table = 'users'` (GuruORM convention).
+      // `tableName` is not a GuruORM property; the correct static field is `table`.
+      expect(User.table).toBe('users');
     });
 
     it('should have correct primary key', () => {
