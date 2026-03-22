@@ -859,14 +859,22 @@ export class Model extends GuruORMModel {
     if (this.timestamps && this.updatedAt) {
       if (!Object.prototype.hasOwnProperty.call(this, '_cachedUpdateFn')) {
         const modelClass = this;
-        // query.update is EloquentBuilder.prototype.update — a stable reference
-        // captured once and reused for the lifetime of this model class.
-        const protoUpdate = query.update;
+        // IMPORTANT: Do NOT capture `query.update` here. `query` is a Proxy, and
+        // accessing `.update` on a Proxy returns a new wrapper closure that hardcodes
+        // the specific builder instance (`target`) from that call. Caching that wrapper
+        // means all subsequent `.update()` calls would execute against the ORIGINAL
+        // builder's QueryBuilder (from the first call), ignoring the current query's
+        // WHERE clauses (e.g. the per-record `WHERE id = ?` clause would be lost).
+        //
+        // Instead, use `this.query.update(data)` directly. When _cachedUpdateFn is
+        // invoked, `this` is the current EloquentBuilder instance (set by the Proxy's
+        // get trap via `value.apply(target, args)`), so `this.query` is the correct
+        // underlying QueryBuilder with all accumulated WHERE clauses.
         this._cachedUpdateFn = async function timestampedUpdate(data) {
           if (data[modelClass.updatedAt] === undefined) {
             data[modelClass.updatedAt] = new Date();
           }
-          return protoUpdate.call(this, data);
+          return this.query.update(data);
         };
       }
       query.update = this._cachedUpdateFn;

@@ -663,14 +663,13 @@ describe('Model', () => {
         static fillable = ['name'];
         // Override query to avoid actual DB connection for unit test
         static query() {
-          const fakeBuilder = { update: async function(data) { return data; }, whereNull() { return this; }, _skipSoftDeletes: false };
-          // Replicate the caching logic directly to test it
+          const fakeBuilder = { query: { update: async function(data) { return 1; } }, whereNull() { return this; }, _skipSoftDeletes: false };
+          // Replicate the caching logic using the fixed approach (this.query.update)
           if (!Object.prototype.hasOwnProperty.call(this, '_cachedUpdateFn')) {
             const modelClass = this;
-            const protoUpdate = fakeBuilder.update;
             this._cachedUpdateFn = async function timestampedUpdate(data) {
               if (data[modelClass.updatedAt] === undefined) data[modelClass.updatedAt] = new Date();
-              return protoUpdate.call(this, data);
+              return this.query.update(data);
             };
           }
           fakeBuilder.update = this._cachedUpdateFn;
@@ -688,6 +687,50 @@ describe('Model', () => {
 
       // Same function reference — no new closure created after first call
       expect(fn1).toBe(fn2);
+    });
+
+    test('_cachedUpdateFn routes through `this.query`, not a closure-captured builder (proxy bug regression)', async () => {
+      // Regression test: the old implementation captured `proxy.update` which hardcodes
+      // the builder from the first call. This test verifies that each call's underlying
+      // QueryBuilder receives the update, not the first call's QB.
+
+      class RegBugModel extends Model {
+        static tableName = 'reg_bug';
+        static timestamps = true;
+        static updatedAt = 'updated_at';
+        static fillable = ['name'];
+        static query() {
+          // Each call creates a fresh QB mock so we can differentiate them
+          const calls = [];
+          const qb = { update: async (data) => { calls.push(data); return 1; }, _calls: calls };
+          const builder = { query: qb, whereNull() { return this; }, _skipSoftDeletes: false };
+          if (!Object.prototype.hasOwnProperty.call(this, '_cachedUpdateFn')) {
+            const modelClass = this;
+            this._cachedUpdateFn = async function timestampedUpdate(data) {
+              if (data[modelClass.updatedAt] === undefined) data[modelClass.updatedAt] = new Date();
+              return this.query.update(data);
+            };
+          }
+          builder.update = this._cachedUpdateFn;
+          return builder;
+        }
+      }
+      delete RegBugModel._cachedUpdateFn;
+
+      // First call — QB1
+      const q1 = RegBugModel.query();
+      await q1.update.call(q1, { name: 'first' });
+      expect(q1.query._calls).toHaveLength(1);
+      expect(q1.query._calls[0]).toMatchObject({ name: 'first' });
+
+      // Second call — QB2 (a different QB with its own calls array)
+      const q2 = RegBugModel.query();
+      await q2.update.call(q2, { name: 'second' });
+      // QB2's update must have been called
+      expect(q2.query._calls).toHaveLength(1);
+      expect(q2.query._calls[0]).toMatchObject({ name: 'second' });
+      // QB1 must NOT have been called again (still only 1 call)
+      expect(q1.query._calls).toHaveLength(1);
     });
 
     test('timestamped update injects updated_at automatically', async () => {
