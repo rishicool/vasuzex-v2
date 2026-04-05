@@ -169,7 +169,13 @@ export function DataTable(props) {
   const [statusFilter, setStatusFilter] = React.useState(urlState.statusFilter);
   const [limit, setLimit] = React.useState(urlState.limit);
   const [columnSearch, setColumnSearch] = React.useState(urlState.columnSearch);
-  
+  // Debounced version of columnSearch — API is only called once the user pauses typing
+  const [debouncedColumnSearch, setDebouncedColumnSearch] = React.useState(urlState.columnSearch);
+  const columnSearchDebounceRef = React.useRef(null);
+
+  // Abort controller for in-flight requests — cancelled whenever new fetch params arrive
+  const abortControllerRef = React.useRef(null);
+
   const [data, setData] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
   const [totalPages, setTotalPages] = React.useState(1);
@@ -283,6 +289,22 @@ export function DataTable(props) {
     }
   }, [location?.search, hasReactRouter, loadStateFromURL]);
 
+  // Debounce columnSearch — user sees immediate input response, but API call waits 400ms
+  // Also syncs back if columnSearch is set programmatically (URL restore / browser back)
+  React.useEffect(() => {
+    if (columnSearchDebounceRef.current) {
+      clearTimeout(columnSearchDebounceRef.current);
+    }
+    columnSearchDebounceRef.current = setTimeout(() => {
+      setDebouncedColumnSearch(columnSearch);
+    }, 400);
+    return () => {
+      if (columnSearchDebounceRef.current) {
+        clearTimeout(columnSearchDebounceRef.current);
+      }
+    };
+  }, [columnSearch]);
+
   const handleStatusToggle = async (row) => {
     if (!toggleLink) return;
     try {
@@ -298,12 +320,19 @@ export function DataTable(props) {
     }
   };
   
-  // Reset page to 1 when columnSearch changes
+  // Reset page to 1 when debouncedColumnSearch changes
   React.useEffect(() => {
     setPage(1);
-  }, [columnSearch]);
+  }, [debouncedColumnSearch]);
 
   const fetchData = React.useCallback(async () => {
+    // Cancel any in-flight request before starting a new one
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
+
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -314,14 +343,14 @@ export function DataTable(props) {
       });
       if (statusFilter !== "all") params.append("isActive", statusFilter);
       if (search) params.append("search", search);
-      // Add column search params
-      Object.entries(columnSearch).forEach(([field, value]) => {
+      // Add debounced column search params
+      Object.entries(debouncedColumnSearch).forEach(([field, value]) => {
         if (value) params.append(`columnSearch[${field}]`, value);
       });
 
       // Properly append params to apiUrl (check if apiUrl already has query params)
       const separator = apiUrl.includes('?') ? '&' : '?';
-      const result = await api.get(`${apiUrl}${separator}${params}`);
+      const result = await api.get(`${apiUrl}${separator}${params}`, { signal });
 
       // Handle nested data structure: result.data.data OR result.data.items
       const items = Array.isArray(result.data)
@@ -333,13 +362,16 @@ export function DataTable(props) {
       setTotalPages(pagination?.totalPages || 1);
       setTotalItems(pagination?.total || 0);
     } catch (err) {
+      // Ignore abort errors — they are expected when a newer request supersedes this one
+      if (err && err.name === 'AbortError') return;
+      if (err && err.code === 'ERR_CANCELED') return;
       setData([]);
       setTotalPages(1);
       setTotalItems(0);
     } finally {
       setLoading(false);
     }
-  }, [api, apiUrl, page, sortBy, sortOrder, statusFilter, limit, search, columnSearch]);
+  }, [api, apiUrl, page, sortBy, sortOrder, statusFilter, limit, search, debouncedColumnSearch]);
 
   // Trigger fetchData for main params
   React.useEffect(() => {
@@ -359,6 +391,15 @@ export function DataTable(props) {
       fetchData();
     }
   }, [refreshKey, fetchData]);
+
+  // Abort any in-flight request when the component unmounts
+  React.useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   const handleSort = (field) => {
     if (sortBy === field) {

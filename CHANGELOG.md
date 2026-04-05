@@ -2,6 +2,35 @@
 
 All notable changes to Vasuzex will be documented in this file.
 
+## [2.3.13] - 2026-04-05
+
+### 🐛 Fixed
+
+#### DataTable — Debounce + In-Flight Request Cancellation (`vasuzex/react`)
+
+- **Debounced column search** — Column search input now waits 400 ms after the user stops typing before sending a request to the server. Previously, a request was fired on every keypress, causing API flooding for fast typists. ([`DataTable.jsx`](frontend/react-ui/components/DataTable/DataTable.jsx))
+
+- **AbortController on in-flight requests** — If the user starts typing again while a previous search request is still in flight, that request is now automatically aborted before the new debounce window starts. This prevents stale responses from arriving out-of-order and updating the table with old data.
+
+- **Unmount cleanup** — Any pending request is aborted when the DataTable component unmounts, preventing setState calls on unmounted components.
+
+**Technical details:**
+- Added `debouncedColumnSearch` state (derived from `columnSearch` with 400 ms debounce)
+- Added `columnSearchDebounceRef` (`useRef`) — timer handle for the debounce
+- Added `abortControllerRef` (`useRef`) — holds the `AbortController` for the current fetch
+- `fetchData` useCallback now: aborts previous controller → creates new `AbortController` → passes `signal` to `api.get()` → catches `AbortError`/`ERR_CANCELED` silently
+- Reset-page effect (`useEffect`) updated to depend on `debouncedColumnSearch` instead of `columnSearch`
+
+### 📝 Changed
+
+#### README — Complete Rewrite
+- Removed outdated alpha/V2 migration content
+- Rebuilt from the live documentation at **https://vasuzex.xdeve.com/guide/**
+- Covers: requirements, quick start, project structure, architecture, HTTP layer, Eloquent models, React UI, CLI reference, environment config, and full documentation index
+- Proper badges (npm version, downloads, license, Node.js, pnpm)
+
+---
+
 ## [2.3.0] - 2026-02-18
 
 ### 🚀 Standalone Script Support
