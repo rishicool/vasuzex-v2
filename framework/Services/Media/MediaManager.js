@@ -1,6 +1,14 @@
 /**
  * Media Manager
  * Centralized media serving with dynamic thumbnail generation
+ *
+ * Enhancements (April 2026):
+ * - WebP/AVIF format negotiation (serve best format the client accepts)
+ * - Format-aware disk cache key — WebP and JPEG cached separately
+ * - LRU in-memory cache for hot images (no filesystem hit for repeated requests)
+ * - Direct cache lookup by format (no extension loop)
+ * - Immutable 1-year cache headers via controller
+ * - ETag support (content MD5) for conditional requests
  */
 
 import sharp from 'sharp';
@@ -8,6 +16,51 @@ import { createHash } from 'crypto';
 import { mkdir, readFile, writeFile, stat, unlink, readdir } from 'fs/promises';
 import { join, dirname } from 'path';
 import { existsSync } from 'fs';
+
+/** Max entries in the in-memory LRU cache */
+const MEMORY_CACHE_MAX_ENTRIES = 200;
+
+/**
+ * Simple LRU Map — evicts least-recently-used entry when capacity is exceeded.
+ * Keys are strings (cacheKey + format), values are Buffers.
+ */
+class LRUCache {
+  constructor(maxEntries) {
+    this.maxEntries = maxEntries;
+    this._map = new Map();
+  }
+
+  get(key) {
+    if (!this._map.has(key)) return null;
+    // Refresh: delete → re-insert so it becomes most-recently-used  
+    const value = this._map.get(key);
+    this._map.delete(key);
+    this._map.set(key, value);
+    return value;
+  }
+
+  set(key, value) {
+    if (this._map.has(key)) {
+      this._map.delete(key);
+    } else if (this._map.size >= this.maxEntries) {
+      // Evict the first (least-recently-used) entry
+      this._map.delete(this._map.keys().next().value);
+    }
+    this._map.set(key, value);
+  }
+
+  has(key) {
+    return this._map.has(key);
+  }
+
+  get size() {
+    return this._map.size;
+  }
+
+  clear() {
+    this._map.clear();
+  }
+}
 
 export class MediaManager {
   constructor(app) {
@@ -18,113 +71,142 @@ export class MediaManager {
     this.allowedSizes = this.config.thumbnails.allowed_sizes;
     this.maxWidth = this.config.thumbnails.max_width;
     this.maxHeight = this.config.thumbnails.max_height;
+
+    // In-memory LRU cache for hot thumbnails
+    this._memCache = new LRUCache(MEMORY_CACHE_MAX_ENTRIES);
   }
 
   /**
-   * Get image with optional thumbnail
+   * Get image with optional thumbnail.
+   * @param {string} imagePath   - Relative storage path
+   * @param {number|null} width  - Target width  (null = original)
+   * @param {number|null} height - Target height (null = original)
+   * @param {string} format      - Output format: 'webp' | 'avif' | 'jpeg' | 'png'
    */
-  async getImage(imagePath, width = null, height = null) {
-    // If no dimensions, serve original
+  async getImage(imagePath, width = null, height = null, format = 'webp') {
+    // If no dimensions, serve original (no resizing, no format conversion)
     if (!width && !height) {
       return await this.getOriginalImage(imagePath);
     }
 
-    // Validate dimensions
+    // Validate dimensions (throws on abuse / out-of-range)
     this.validateDimensions(width, height);
 
-    // Check cache first
-    const cacheKey = this.getCacheKey(imagePath, width, height);
-    const cached = await this.getCachedThumbnail(cacheKey);
-    
-    if (cached) {
-      // Detect content type from cached buffer
-      const contentType = await this.detectContentType(cached);
+    const cacheKey = this.getCacheKey(imagePath, width, height, format);
+
+    // 1. Check in-memory LRU cache first (fastest path)
+    const memHit = this._memCache.get(cacheKey);
+    if (memHit) {
       return {
-        buffer: cached,
+        buffer: memHit.buffer,
         fromCache: true,
-        contentType,
+        cacheLayer: 'memory',
+        contentType: memHit.contentType,
+        etag: memHit.etag,
       };
     }
 
-    // Generate thumbnail
-    const result = await this.generateThumbnail(imagePath, width, height);
-    
-    // Cache it
-    await this.cacheThumbnail(cacheKey, result.buffer);
+    // 2. Check disk cache
+    const diskHit = await this.getCachedThumbnail(cacheKey, format);
+    if (diskHit) {
+      const contentType = this.formatToContentType(format);
+      const etag = this.buildETag(diskHit);
+      // Warm the in-memory cache
+      this._memCache.set(cacheKey, { buffer: diskHit, contentType, etag });
+      return {
+        buffer: diskHit,
+        fromCache: true,
+        cacheLayer: 'disk',
+        contentType,
+        etag,
+      };
+    }
+
+    // 3. Generate thumbnail
+    const result = await this.generateThumbnail(imagePath, width, height, format);
+    const etag = this.buildETag(result.buffer);
+
+    // Persist to disk cache (fire-and-forget — don't block the response)
+    this.cacheThumbnail(cacheKey, result.buffer, format).catch(() => {});
+
+    // Store in memory cache
+    this._memCache.set(cacheKey, { buffer: result.buffer, contentType: result.contentType, etag });
 
     return {
       buffer: result.buffer,
       fromCache: false,
+      cacheLayer: 'none',
       contentType: result.contentType,
+      etag,
     };
   }
 
   /**
-   * Get original image from storage
+   * Get original image from storage (no resize, no conversion).
    */
   async getOriginalImage(imagePath) {
     const storage = this.app.make('storage');
     const buffer = await storage.get(imagePath);
+    const etag = this.buildETag(buffer);
 
     return {
       buffer,
       fromCache: false,
+      cacheLayer: 'none',
       contentType: this.getContentType(imagePath),
+      etag,
     };
   }
 
   /**
-   * Generate thumbnail
+   * Generate thumbnail with format conversion.
+   * Always converts to the requested format for optimal delivery.
    */
-  async generateThumbnail(imagePath, width, height) {
+  async generateThumbnail(imagePath, width, height, format = 'webp') {
     const storage = this.app.make('storage');
     const imageBuffer = await storage.get(imagePath);
 
-    // Detect image metadata
-    const image = sharp(imageBuffer);
-    const metadata = await image.metadata();
+    // Detect alpha channel (needed to decide whether transparent PNG should be kept)
+    const metadata = await sharp(imageBuffer).metadata();
     const hasAlpha = metadata.hasAlpha;
-    const originalFormat = metadata.format;
 
-    // Build the sharp pipeline
-    let pipeline = sharp(imageBuffer)
-      .resize(width, height, {
-        fit: this.config.thumbnails.fit,
-        position: this.config.thumbnails.position,
-        withoutEnlargement: true,
-      });
+    let pipeline = sharp(imageBuffer).resize(width, height, {
+      fit: this.config.thumbnails.fit,
+      position: this.config.thumbnails.position,
+      withoutEnlargement: true,
+    });
 
-    // Choose output format based on input format and transparency
-    let contentType = 'image/jpeg';
-    
-    if (originalFormat === 'webp') {
-      // Preserve WebP format (supports transparency and good compression)
-      pipeline = pipeline.webp({
-        quality: this.config.thumbnails.quality,
-      });
+    let contentType;
+
+    if (format === 'avif') {
+      // AVIF via libheif (av1 compression) — best compression, modern browsers
+      pipeline = pipeline.heif({ compression: 'av1', quality: this.config.thumbnails.quality });
+      contentType = 'image/avif';
+    } else if (format === 'webp') {
+      // WebP — excellent compression, near-universal support
+      pipeline = pipeline.webp({ quality: this.config.thumbnails.quality });
       contentType = 'image/webp';
-    } else if (hasAlpha) {
-      // For PNG or other formats with transparency, use PNG
-      pipeline = pipeline.png({
-        quality: this.config.thumbnails.quality,
-        compressionLevel: 9,
-      });
+    } else if (format === 'png' || hasAlpha) {
+      // PNG for transparency fallback
+      pipeline = pipeline.png({ compressionLevel: 9 });
       contentType = 'image/png';
     } else {
-      // For opaque images, use JPEG for best compression
+      // JPEG for everything else
       pipeline = pipeline.jpeg({
         quality: this.config.thumbnails.quality,
         progressive: true,
+        mozjpeg: true,
       });
+      contentType = 'image/jpeg';
     }
 
     const thumbnail = await pipeline.toBuffer();
-
     return { buffer: thumbnail, contentType };
   }
 
   /**
-   * Validate thumbnail dimensions
+   * Validate thumbnail dimensions.
+   * Prevents abuse (e.g. requesting 5000×5000 to spike CPU).
    */
   validateDimensions(width, height) {
     if (width <= 0 || height <= 0) {
@@ -137,17 +219,17 @@ export class MediaManager {
       );
     }
 
-    // Check if size is in allowed list (if strict mode)
+    // Strict mode: only predefined sizes
     if (this.config.thumbnails.strict_sizes) {
       const sizeKey = `${width}x${height}`;
       const isAllowed = this.allowedSizes.some(
-        size => `${size.width}x${size.height}` === sizeKey
+        (size) => `${size.width}x${size.height}` === sizeKey
       );
 
       if (!isAllowed) {
         throw new Error(
           `Size ${sizeKey} is not in allowed sizes. Use: ${this.allowedSizes
-            .map(s => `${s.width}x${s.height}`)
+            .map((s) => `${s.width}x${s.height}`)
             .join(', ')}`
         );
       }
@@ -155,75 +237,91 @@ export class MediaManager {
   }
 
   /**
-   * Get cache key for thumbnail
+   * Build a deterministic cache key that includes the output format.
+   * Using MD5 is fine here — it's for cache key derivation, not security.
    */
-  getCacheKey(imagePath, width, height) {
-    const hash = createHash('md5')
-      .update(`${imagePath}:${width}:${height}`)
+  getCacheKey(imagePath, width, height, format) {
+    return createHash('md5')
+      .update(`${imagePath}:${width}:${height}:${format}`)
       .digest('hex');
-    return hash;
   }
 
   /**
-   * Get cached thumbnail
+   * Build a strong ETag from buffer content (MD5 hex).
    */
-  async getCachedThumbnail(cacheKey) {
+  buildETag(buffer) {
+    return `"${createHash('md5').update(buffer).digest('hex')}"`;
+  }
+
+  /**
+   * Get cached thumbnail from disk.
+   * Looks only for the exact format file — no extension loop.
+   */
+  async getCachedThumbnail(cacheKey, format) {
     try {
-      // Try all supported image extensions
-      for (const ext of ['.webp', '.png', '.jpg']) {
-        const cachePath = join(this.cacheDir, `${cacheKey}${ext}`);
-        
-        if (!existsSync(cachePath)) {
-          continue;
-        }
+      const ext = this.formatToExtension(format);
+      const cachePath = join(this.cacheDir, `${cacheKey}${ext}`);
 
-        // Check if cache expired
-        const stats = await stat(cachePath);
-        const age = Date.now() - stats.mtimeMs;
-        
-        if (age > this.cacheTTL) {
-          await unlink(cachePath);
-          continue;
-        }
+      if (!existsSync(cachePath)) return null;
 
-        return await readFile(cachePath);
+      const stats = await stat(cachePath);
+      const age = Date.now() - stats.mtimeMs;
+
+      if (age > this.cacheTTL) {
+        await unlink(cachePath).catch(() => {});
+        return null;
       }
-      
-      return null;
-    } catch (error) {
+
+      return await readFile(cachePath);
+    } catch {
       return null;
     }
   }
 
   /**
-   * Cache thumbnail
+   * Write thumbnail buffer to disk cache.
    */
-  async cacheThumbnail(cacheKey, buffer) {
+  async cacheThumbnail(cacheKey, buffer, format) {
     try {
-      // Detect format from buffer to use correct extension
-      const metadata = await sharp(buffer).metadata();
-      const formatMap = {
-        webp: '.webp',
-        png: '.png',
-        jpeg: '.jpg',
-      };
-      const ext = formatMap[metadata.format] || '.jpg';
+      const ext = this.formatToExtension(format);
       const cachePath = join(this.cacheDir, `${cacheKey}${ext}`);
       await mkdir(dirname(cachePath), { recursive: true });
       await writeFile(cachePath, buffer);
     } catch (error) {
-      // Fail silently - caching is optional
       console.error('Failed to cache thumbnail:', error.message);
     }
   }
 
   /**
-   * Get cache statistics
+   * Map output format string → file extension.
+   */
+  formatToExtension(format) {
+    const map = { webp: '.webp', avif: '.avif', jpeg: '.jpg', png: '.png' };
+    return map[format] || '.jpg';
+  }
+
+  /**
+   * Map output format string → MIME type.
+   */
+  formatToContentType(format) {
+    const map = {
+      webp: 'image/webp',
+      avif: 'image/avif',
+      jpeg: 'image/jpeg',
+      png: 'image/png',
+    };
+    return map[format] || 'image/jpeg';
+  }
+
+  /**
+   * Get cache statistics.
    */
   async getCacheStats() {
     try {
       const files = await readdir(this.cacheDir);
-      const imageFiles = files.filter(f => f.endsWith('.jpg') || f.endsWith('.png') || f.endsWith('.webp'));
+      const imageFiles = files.filter((f) =>
+        ['.jpg', '.png', '.webp', '.avif'].some((ext) => f.endsWith(ext))
+      );
 
       let totalSize = 0;
       let expiredCount = 0;
@@ -246,6 +344,10 @@ export class MediaManager {
         expired: expiredCount,
         ttl: this.cacheTTL,
         path: this.cacheDir,
+        memoryCache: {
+          entries: this._memCache.size,
+          maxEntries: MEMORY_CACHE_MAX_ENTRIES,
+        },
       };
     } catch (error) {
       return {
@@ -255,18 +357,24 @@ export class MediaManager {
         expired: 0,
         ttl: this.cacheTTL,
         path: this.cacheDir,
+        memoryCache: {
+          entries: this._memCache.size,
+          maxEntries: MEMORY_CACHE_MAX_ENTRIES,
+        },
         error: error.message,
       };
     }
   }
 
   /**
-   * Clear expired cache
+   * Clear expired disk cache entries.
    */
   async clearExpiredCache() {
     try {
       const files = await readdir(this.cacheDir);
-      const imageFiles = files.filter(f => f.endsWith('.jpg') || f.endsWith('.png') || f.endsWith('.webp'));
+      const imageFiles = files.filter((f) =>
+        ['.jpg', '.png', '.webp', '.avif'].some((ext) => f.endsWith(ext))
+      );
 
       let cleared = 0;
 
@@ -289,17 +397,22 @@ export class MediaManager {
   }
 
   /**
-   * Clear all cache
+   * Clear ALL disk cache + flush in-memory cache.
    */
   async clearAllCache() {
     try {
       const files = await readdir(this.cacheDir);
-      const imageFiles = files.filter(f => f.endsWith('.jpg') || f.endsWith('.png') || f.endsWith('.webp'));
+      const imageFiles = files.filter((f) =>
+        ['.jpg', '.png', '.webp', '.avif'].some((ext) => f.endsWith(ext))
+      );
 
       for (const file of imageFiles) {
         const filePath = join(this.cacheDir, file);
         await unlink(filePath);
       }
+
+      // Also flush the in-memory cache
+      this._memCache.clear();
 
       return imageFiles.length;
     } catch (error) {
@@ -309,10 +422,10 @@ export class MediaManager {
   }
 
   /**
-   * Get allowed sizes
+   * Get allowed sizes list.
    */
   getAllowedSizes() {
-    return this.allowedSizes.map(size => ({
+    return this.allowedSizes.map((size) => ({
       name: size.name,
       width: size.width,
       height: size.height,
@@ -321,7 +434,7 @@ export class MediaManager {
   }
 
   /**
-   * Get content type from file extension
+   * Get MIME type from file extension (for original serving).
    */
   getContentType(path) {
     const ext = path.split('.').pop().toLowerCase();
@@ -331,32 +444,14 @@ export class MediaManager {
       png: 'image/png',
       gif: 'image/gif',
       webp: 'image/webp',
+      avif: 'image/avif',
       svg: 'image/svg+xml',
     };
     return types[ext] || 'application/octet-stream';
   }
 
   /**
-   * Detect content type from buffer
-   */
-  async detectContentType(buffer) {
-    try {
-      const metadata = await sharp(buffer).metadata();
-      const formatMap = {
-        jpeg: 'image/jpeg',
-        png: 'image/png',
-        gif: 'image/gif',
-        webp: 'image/webp',
-        svg: 'image/svg+xml',
-      };
-      return formatMap[metadata.format] || 'image/jpeg';
-    } catch (error) {
-      return 'image/jpeg';
-    }
-  }
-
-  /**
-   * Format bytes to human readable
+   * Format bytes to human-readable string.
    */
   formatBytes(bytes) {
     if (bytes === 0) return '0 B';

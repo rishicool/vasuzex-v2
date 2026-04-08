@@ -85,6 +85,9 @@ export function DataTable(props) {
     onToggle,
     api, // API client instance passed as prop
     persistState = true, // Enable URL-based state persistence by default
+    trashable = false, // Enable trash/restore UI (Live / With Trash / Trash tabs)
+    restoreUrl, // URL template for restore, e.g. "/products/:id/restore"
+    initialTrashed = 'without', // Initial trash mode: 'without' | 'with' | 'only'
   } = props;
 
   // Validate that api client is provided
@@ -176,8 +179,11 @@ export function DataTable(props) {
   // Abort controller for in-flight requests — cancelled whenever new fetch params arrive
   const abortControllerRef = React.useRef(null);
 
+  const [trashed, setTrashed] = React.useState(initialTrashed);
+
   const [data, setData] = React.useState([]);
-  const [loading, setLoading] = React.useState(false);
+  // Start as true: skeleton shows immediately on first render before the initial fetch.
+  const [loading, setLoading] = React.useState(true);
   const [totalPages, setTotalPages] = React.useState(1);
   const [totalItems, setTotalItems] = React.useState(0);
 
@@ -325,6 +331,24 @@ export function DataTable(props) {
     setPage(1);
   }, [debouncedColumnSearch]);
 
+  // useLayoutEffect fires synchronously after DOM mutation, before paint.
+  // This guarantees the skeleton is committed to the DOM before ANY passive
+  // effect (useEffect) runs — which is where fetchData and the API call live.
+  // Without this, React 18 + createRoot batches setLoading(true) with the
+  // fast localhost API response into one render, so the skeleton never paints.
+  //
+  // Skip the very first run (initial mount) because loading already starts as
+  // true, and fetchData's own useEffect handles the first fetch.
+  const isFirstRender = React.useRef(true);
+  React.useLayoutEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    setLoading(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, sortBy, sortOrder, statusFilter, limit, search, debouncedColumnSearch, trashable, trashed, refreshKey, refreshSignal]);
+
   const fetchData = React.useCallback(async () => {
     // Cancel any in-flight request before starting a new one
     if (abortControllerRef.current) {
@@ -333,7 +357,9 @@ export function DataTable(props) {
     abortControllerRef.current = new AbortController();
     const signal = abortControllerRef.current.signal;
 
-    setLoading(true);
+    // loading=true is already set synchronously by useLayoutEffect before this
+    // effect runs. Do not set it here — that caused React 18 batching issues.
+    let wasAborted = false;
     try {
       const params = new URLSearchParams({
         page: page.toString(),
@@ -347,6 +373,9 @@ export function DataTable(props) {
       Object.entries(debouncedColumnSearch).forEach(([field, value]) => {
         if (value) params.append(`columnSearch[${field}]`, value);
       });
+
+      // Append trashed param when trashable mode is active
+      if (trashable) params.append('trashed', trashed);
 
       // Properly append params to apiUrl (check if apiUrl already has query params)
       const separator = apiUrl.includes('?') ? '&' : '?';
@@ -362,35 +391,94 @@ export function DataTable(props) {
       setTotalPages(pagination?.totalPages || 1);
       setTotalItems(pagination?.total || 0);
     } catch (err) {
-      // Ignore abort errors — they are expected when a newer request supersedes this one
-      if (err && err.name === 'AbortError') return;
-      if (err && err.code === 'ERR_CANCELED') return;
-      setData([]);
-      setTotalPages(1);
-      setTotalItems(0);
+      // Abort errors are expected when a newer request supersedes this one — do not
+      // reset loading state because the new request is already in flight with loading=true.
+      if (err && (err.name === 'AbortError' || err.code === 'ERR_CANCELED')) {
+        wasAborted = true;
+      } else {
+        setData([]);
+        setTotalPages(1);
+        setTotalItems(0);
+      }
     } finally {
-      setLoading(false);
+      // Only clear loading when this request completed normally (not aborted).
+      // An aborted request means a newer fetch is already running with loading=true.
+      if (!wasAborted) {
+        setLoading(false);
+      }
     }
-  }, [api, apiUrl, page, sortBy, sortOrder, statusFilter, limit, search, debouncedColumnSearch]);
+  }, [api, apiUrl, page, sortBy, sortOrder, statusFilter, limit, search, debouncedColumnSearch, trashable, trashed]);
 
-  // Trigger fetchData for main params
+  // Always-current ref to fetchData — lets refreshSignal and refreshKey effects
+  // call the latest fetchData without including fetchData in their dep arrays.
+  // This prevents double-fetches: if fetchData were in refreshSignal's deps, the
+  // effect would fire on EVERY sort/search (because fetchData recreates whenever
+  // its own deps change), causing two concurrent requests.
+  const fetchDataRef = React.useRef(fetchData);
+  fetchDataRef.current = fetchData;
+
+  // Trigger fetchData for main params.
+  //
+  // Why rAF + setTimeout(0):
+  // Browser frame sequence: macro-task → microtasks → rAF callbacks → layout+PAINT → next macro-task.
+  // useLayoutEffect commits loading=true (skeleton) synchronously during the commit phase.
+  // Passive effects (useEffect) run as a MessageChannel macro-task.
+  // Inside that macro-task we schedule rAF, which fires PRE-paint of the current frame.
+  // Inside rAF we schedule setTimeout(0), which queues as a MACRO-TASK — meaning it fires
+  // AFTER the browser completes layout+paint for the current frame.
+  // Result: skeleton is guaranteed to be painted to screen before fetchData() opens the XHR.
   React.useEffect(() => {
-    fetchData();
+    let rafId;
+    let timerId;
+    rafId = requestAnimationFrame(() => {
+      timerId = setTimeout(() => {
+        fetchDataRef.current();
+      }, 0);
+    });
+    return () => {
+      cancelAnimationFrame(rafId);
+      clearTimeout(timerId);
+    };
   }, [fetchData]);
 
-  // Trigger fetchData when refreshSignal changes
+  // Trigger fetchData when refreshSignal changes.
+  // fetchData is intentionally NOT in deps — we use fetchDataRef to avoid re-firing
+  // this effect on every sort/search (which would cause a double-fetch).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   React.useEffect(() => {
     if (typeof refreshSignal !== 'undefined') {
-      fetchData();
+      let rafId;
+      let timerId;
+      rafId = requestAnimationFrame(() => {
+        timerId = setTimeout(() => {
+          fetchDataRef.current();
+        }, 0);
+      });
+      return () => {
+        cancelAnimationFrame(rafId);
+        clearTimeout(timerId);
+      };
     }
-  }, [refreshSignal, fetchData]);
+  }, [refreshSignal]);
 
-  // Internal refresh after status toggle
+  // Internal refresh after status toggle.
+  // fetchData is intentionally NOT in deps — same reason as refreshSignal above.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   React.useEffect(() => {
     if (refreshKey > 0) {
-      fetchData();
+      let rafId;
+      let timerId;
+      rafId = requestAnimationFrame(() => {
+        timerId = setTimeout(() => {
+          fetchDataRef.current();
+        }, 0);
+      });
+      return () => {
+        cancelAnimationFrame(rafId);
+        clearTimeout(timerId);
+      };
     }
-  }, [refreshKey, fetchData]);
+  }, [refreshKey]);
 
   // Abort any in-flight request when the component unmounts
   React.useEffect(() => {
@@ -429,6 +517,10 @@ export function DataTable(props) {
             setLimit={setLimit}
             dataLength={data.length}
             totalItems={totalItems}
+            onRefresh={() => setRefreshKey((k) => k + 1)}
+            trashable={trashable}
+            trashed={trashed}
+            setTrashed={(val) => { setTrashed(val); setPage(1); }}
           />
         </div>
         <table className="min-w-full w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -460,6 +552,8 @@ export function DataTable(props) {
                 resourceName={resourceName}
                 resourceIdField={resourceIdField}
                 onRefresh={() => setRefreshKey((k) => k + 1)}
+                trashMode={trashed}
+                restoreUrl={restoreUrl}
               />
             )}
           </tbody>

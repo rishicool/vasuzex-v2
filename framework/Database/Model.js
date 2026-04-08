@@ -535,15 +535,28 @@ export class Model extends GuruORMModel {
       return false;
     }
 
-    this.setAttribute(this.constructor.deletedAt, null);
+    const deletedAtColumn = this.constructor.deletedAt;
+    const pk = this.constructor.primaryKey || 'id';
+    const updates = { [deletedAtColumn]: null };
 
-    const result = await this.save();
-
-    if (result) {
-      await this.fireModelEvent('restored', false);
+    // Add updated_at if timestamps are enabled
+    if (this.constructor.timestamps && this.constructor.updatedAt) {
+      updates[this.constructor.updatedAt] = new Date();
     }
 
-    return result;
+    // Use withTrashed() to bypass the soft-delete scope — a trashed record isn't
+    // visible to the normal query (which adds WHERE deleted_at IS NULL).
+    await this.constructor.withTrashed().where(pk, this.getKey()).update(updates);
+
+    this.setAttribute(deletedAtColumn, null);
+    if (updates[this.constructor.updatedAt]) {
+      this.setAttribute(this.constructor.updatedAt, updates[this.constructor.updatedAt]);
+    }
+    this.syncOriginal();
+
+    await this.fireModelEvent('restored', false);
+
+    return true;
   }
 
   /**

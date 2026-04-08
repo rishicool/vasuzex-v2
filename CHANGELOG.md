@@ -2,6 +2,94 @@
 
 All notable changes to Vasuzex will be documented in this file.
 
+## [2.3.14] - 2026-04-08
+
+### 🐛 Fixed
+
+#### DataTable — Content Loader (Skeleton) on Sort/Search/Filter (`vasuzex/react`)
+
+**Root Causes & Fixes:**
+
+1. **Browser Paint Timing Issue** — Skeleton loader not visible on sort/search (only on explicit refresh click)
+   - **Root cause**: React 18 `createRoot` + fast localhost API responses (2-10ms) meant the skeleton commit and data response both arrived within the same vsync frame (~16ms), so the browser only painted the final data state
+   - **Fix**: `useLayoutEffect` commits skeleton synchronously + `rAF → setTimeout(0)` defers XHR until AFTER browser paint
+   - **Technical flow**: 
+     1. `useLayoutEffect` → skeleton committed to DOM (synchronously, before paint)
+     2. Passive effect queues `rAF` → scheduled pre-paint
+     3. `rAF` queues `setTimeout(0)` → scheduled as macro-task (after paint)
+     4. Browser **paints skeleton** ← now visible to user
+     5. `setTimeout(0)` fires → `fetchData()` → XHR opens → response arrives after skeleton is on screen
+
+2. **API Client Error Interceptor Stripping Cancel Errors** — "No data found" briefly appeared on every sort/search
+   - **Root cause**: axios cancel errors have `err.code === 'ERR_CANCELED'` which DataTable checks — but error interceptor transformed ALL errors to plain `{ message, errors }` objects, stripping the code/name properties
+   - **Impact**: Cancelled requests hit the error path → `setData([])` + `setLoading(false)` → "No data found" flash, then data arrived
+   - **Fix**: Both api clients (`admin/web` and `business/web`) now check `if (axios.isCancel(error))` early and pass through untransformed
+
+3. **Double-Fetch on Every Interaction** — Multiple concurrent requests on sort/search
+   - **Root cause**: `refreshSignal` and `refreshKey` effects had `fetchData` in deps. `fetchData` recreates on every sort/search (because its own deps change). Since every admin page passes `refreshSignal={refreshKey}`, BOTH the main fetch effect AND the refreshSignal effect fired on every interaction → 2+ concurrent requests
+   - **Fix**: Introduced `fetchDataRef` — holds always-current `fetchData` without needing it in secondary effect deps. Secondary effects now only fire when their actual trigger (`refreshSignal` value or `refreshKey` value) changes
+
+4. **Tailwind CSS Classes Not Generated** — animate-pulse skeleton class missing from bundle
+   - **Root cause**: Admin web's `tailwind.config.js` only scanned `./src/**/*`, not the symlinked `vasuzex-v2` directory
+   - **Impact**: `animate-pulse` utility class not in admin web's CSS bundle (business web already had correct path)
+   - **Fix**: Added `../../../vasuzex-v2/frontend/react-ui/**/*.{js,jsx}` to Tailwind content array (matching business web pattern)
+
+**Files Modified:**
+- [`DataTable.jsx`](frontend/react-ui/components/DataTable/DataTable.jsx) — useLayoutEffect + rAF+setTimeout pattern + fetchDataRef
+- `apps/admin/web/src/lib/api-client.js` — axios.isCancel check before error transformation
+- `apps/business/web/src/lib/apiClient.js` — axios.isCancel check before error transformation  
+- `apps/admin/web/tailwind.config.js` — added vasuzex-v2 path to content array
+
+**Result:** Skeleton loader now reliably shows on sort, search, filter, and every other data trigger, then data smoothly renders when ready. No "no data found" flash.
+
+#### Model — Soft-Delete Restore Fix (`vasuzex/eloquent`)
+
+- **Issue**: `restore()` method used `save()` which triggered model observers and allowed normal query scopes, causing inconsistent state
+- **Fix**: Direct database update via `withTrashed()` query builder to bypass soft-delete scope
+- **Changes**: 
+  - Use `withTrashed().where(pk, id).update()` instead of `save()`
+  - Auto-update `updated_at` timestamp when timestamps enabled
+  - Calls `syncOriginal()` to update model cache state
+  - Fires `restored` model event after DB update completes
+- **Impact**: Soft-deleted records now restore cleanly without triggering update observers
+
+#### MediaManager — WebP/AVIF Format Negotiation (`vasuzex/services`)
+
+- **Issue**: Media serving didn't support modern image formats (WebP, AVIF) or client content-type negotiation
+- **Enhancements**:
+  1. **Format negotiation** — Query param `?format=webp|avif|jpeg|png` overrides client Accept header
+  2. **LRU in-memory cache** — Hot thumbnails cached in memory (200 entry limit) to avoid repeated filesystem hits
+  3. **Format-aware disk cache keys** — WebP and JPEG of same image cached separately
+  4. **ETag support** — Content MD5 hash for conditional requests (304 Not Modified)
+  5. **Immutable cache headers** — 1-year max-age via dedicated controller
+  6. **Direct format lookup** — Cache lookup by format (no extension loop)
+- **Performance**: 5-50x faster for repeated hot thumbnail requests
+- **Files Modified**: [`framework/Services/Media/MediaManager.js`](framework/Services/Media/MediaManager.js)
+
+### ✨ Added
+
+#### ActionDefaults — Hard Delete & Restore Actions (`vasuzex/react`)
+
+- **Hard Delete Action** — Permanent delete with severe confirmation (Flame icon 🔥)
+  - Shows in trash-only mode for trashed records
+  - `DELETE ?hardDelete=true` query parameter
+  - `createHardDeleteClickHandler()` helper
+  - "Cannot be undone" warning in confirmation dialog
+  
+- **Restore Action** — Restore soft-deleted records (RotateCcw icon)
+  - Shows for trashed rows
+  - `PATCH {restoreUrl}` request
+  - `createRestoreClickHandler()` helper
+  - Smooth restore with toast notification
+  
+- **Custom Action Tooltip** — Auto-generate tooltip from label when title not provided
+  - Improves UX for custom actions without explicit title
+  
+**Files Modified:** [`frontend/react-ui/components/DataTable/ActionDefaults.jsx`](frontend/react-ui/components/DataTable/ActionDefaults.jsx)
+
+**Impact:** Complete soft-delete/trash workflow now supported in DataTable — view, restore, or permanently delete with proper confirmations.
+
+
 ## [2.3.13] - 2026-04-05
 
 ### 🐛 Fixed

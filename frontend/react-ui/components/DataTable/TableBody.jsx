@@ -5,15 +5,19 @@ import {
   applyActionDefaults,
   createViewClickHandler,
   createDeleteClickHandler,
+  createHardDeleteClickHandler,
+  createRestoreClickHandler,
+  ACTION_DEFAULTS,
 } from "./ActionDefaults.jsx";
 
 /**
  * TableBody Component - Production Ready
- * 
- * Table body with data rows, column rendering, and action buttons
- * Handles Switch component for status toggle
- * Auto-configures edit/view/delete actions
- * 
+ *
+ * Table body with data rows, column rendering, and action buttons.
+ * Handles Switch component for status toggle.
+ * Trash-aware: when trashMode='only', delete becomes hardDelete with warning;
+ * restore button shown automatically for trashed rows.
+ *
  * @module components/DataTable/TableBody
  */
 export function TableBody({
@@ -27,14 +31,26 @@ export function TableBody({
   resourceName,
   resourceIdField = "id",
   onRefresh,
+  // Trash support: 'without' | 'with' | 'only'
+  trashMode,
+  // URL for the restore endpoint (e.g. "/products/:id/restore")
+  restoreUrl,
 }) {
   if (loading) {
+    const skeletonRows = Array.from({ length: 5 });
+    const colCount = columns.length + (actions ? 1 : 0);
     return (
-      <tr>
-        <td colSpan={columns.length + (actions ? 1 : 0)} className="text-center py-8">
-          Loading data...
-        </td>
-      </tr>
+      <>
+        {skeletonRows.map((_, rowIdx) => (
+          <tr key={rowIdx} className="border-b border-gray-200 dark:border-gray-700 animate-pulse">
+            {Array.from({ length: colCount }).map((_, colIdx) => (
+              <td key={colIdx} className="px-6 py-4">
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4" />
+              </td>
+            ))}
+          </tr>
+        ))}
+      </>
     );
   }
   
@@ -83,6 +99,11 @@ export function TableBody({
                     return null;
                   }
 
+                  // In trash-only mode: skip edit/switch/status-toggle actions
+                  if (trashMode === 'only' && ['edit', 'switch'].includes(userAction.name)) {
+                    return null;
+                  }
+
                   // Apply defaults based on action name
                   const action = applyActionDefaults(userAction, resourceName, resourceIdField);
 
@@ -114,22 +135,46 @@ export function TableBody({
                     }
                   }
 
-                  // Handle delete action with automatic confirmation
+                  // Handle delete action:
+                  // — in trash-only mode, OR when row is already soft-deleted (has deleted_at) → hard-delete with permanent-delete confirmation
+                  // — normal mode → soft-delete with standard confirmation
                   if (action.type === "button" && action.name === "delete") {
                     const deleteAction = action;
                     if (deleteAction.deleteUrl && !userAction.onClick) {
-                      deleteAction.onClick = createDeleteClickHandler(
-                        api,
-                        deleteAction.deleteUrl,
-                        deleteAction.confirmMessage || "Are you sure you want to delete this item?",
-                        resourceIdField,
-                        {
-                          confirmTitle: deleteAction.confirmTitle,
-                          confirmButtonText: deleteAction.confirmButtonText,
-                          successMessage: deleteAction.successMessage,
-                          onRefresh,
-                        },
-                      );
+                      const isAlreadyTrashed = !!row.deleted_at;
+                      if (trashMode === 'only' || isAlreadyTrashed) {
+                        // Override to hardDelete
+                        deleteAction.onClick = createHardDeleteClickHandler(
+                          api,
+                          deleteAction.deleteUrl,
+                          deleteAction.confirmMessage || "This will permanently remove the record from the database. This action cannot be undone.",
+                          resourceIdField,
+                          {
+                            confirmTitle: "Permanently Delete?",
+                            confirmButtonText: "Yes, permanently delete!",
+                            successMessage: deleteAction.successMessage || "Permanently deleted",
+                            onRefresh,
+                          },
+                        );
+                        // Apply hardDelete styling
+                        if (!userAction.className) {
+                          deleteAction.className = ACTION_DEFAULTS.hardDelete.extraClass;
+                        }
+                        deleteAction.title = "Permanently Delete";
+                      } else {
+                        deleteAction.onClick = createDeleteClickHandler(
+                          api,
+                          deleteAction.deleteUrl,
+                          deleteAction.confirmMessage || "Are you sure you want to delete this item?",
+                          resourceIdField,
+                          {
+                            confirmTitle: deleteAction.confirmTitle,
+                            confirmButtonText: deleteAction.confirmButtonText,
+                            successMessage: deleteAction.successMessage,
+                            onRefresh,
+                          },
+                        );
+                      }
                     }
                   }
 
@@ -138,7 +183,7 @@ export function TableBody({
                   const className =
                     typeof action.className === "function"
                       ? action.className(row)
-                      : action.className || "";
+                      : action.className || action.extraClass || "";
                   const title =
                     typeof action.title === "function"
                       ? action.title(row)
@@ -183,6 +228,22 @@ export function TableBody({
 
                   return null;
                 })}
+
+                {/* Auto-inject Restore button when trashMode is active and row is trashed */}
+                {restoreUrl && (trashMode === 'only' || (trashMode === 'with' && row.deleted_at)) && (() => {
+                  const handler = createRestoreClickHandler(api, restoreUrl, resourceIdField, { onRefresh });
+                  const Icon = ACTION_DEFAULTS.restore.icon;
+                  return (
+                    <button
+                      key="auto-restore"
+                      onClick={() => handler(row)}
+                      className={ACTION_DEFAULTS.restore.extraClass}
+                      title="Restore"
+                    >
+                      <Icon className="h-4 w-4" />
+                    </button>
+                  );
+                })()}
               </div>
             </td>
           )}
