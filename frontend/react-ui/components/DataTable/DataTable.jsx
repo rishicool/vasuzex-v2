@@ -17,10 +17,12 @@
 
 import React from "react";
 import { TableBody } from "./TableBody.jsx";
+import { MobileCardList } from "./MobileCardList.jsx";
 import { Filters } from "./Filters.jsx";
 import { TableHeader } from "./TableHeader.jsx";
 import { TableState } from "./TableState.jsx";
 import { Pagination } from "./Pagination.jsx";
+import { useMobileDetect } from "../../hooks/useMobileDetect.js";
 
 // Conditional import for React Router (optional dependency)
 let useSearchParamsHook = null;
@@ -58,6 +60,7 @@ try {
  * @param {number} props.initialLimit - Initial rows per page
  * @param {string} props.emptyText - Text to show when no data
  * @param {boolean} props.persistState - Enable URL state persistence (default: true)
+ * @param {boolean} props.mobileCardView - Render as stacked cards on mobile < 640px (default: false)
  */
 
 // URL params that DataTable owns — all other params (e.g. trashed) are preserved as-is
@@ -88,7 +91,10 @@ export function DataTable(props) {
     trashable = false, // Enable trash/restore UI (Live / With Trash / Trash tabs)
     restoreUrl, // URL template for restore, e.g. "/products/:id/restore"
     initialTrashed = 'without', // Initial trash mode: 'without' | 'with' | 'only'
+    mobileCardView = false, // Render as stacked cards on mobile (< 640px)
   } = props;
+
+  const isMobile = useMobileDetect(640);
 
   // Validate that api client is provided
   if (!api) {
@@ -503,10 +509,12 @@ export function DataTable(props) {
     setPage(newPage);
   };
   
-  return (
-    <div className="overflow-x-auto w-full">
-      {/* Filters and Controls */}
-      <div className="mb-6 overflow-x-scroll rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
+  // Mobile card view — rendered when mobileCardView=true and on mobile
+  // Renders flat (no inner card) so the page's outer card is the visual container
+  if (mobileCardView && isMobile) {
+    return (
+      <div className="w-full text-sm">
+        {/* Filters row — sits at top of the page's outer card */}
         <div className="border-b border-gray-100 p-3 dark:border-white/[0.05]">
           <Filters
             statusFilter={statusFilter}
@@ -523,7 +531,48 @@ export function DataTable(props) {
             setTrashed={(val) => { setTrashed(val); setPage(1); }}
           />
         </div>
-        <table className="min-w-full w-full divide-y divide-gray-200 dark:divide-gray-700">
+        <MobileCardList
+          api={api}
+          data={data}
+          columns={columns}
+          actions={actions}
+          loading={loading}
+          emptyText={emptyText}
+          resourceName={resourceName}
+          resourceIdField={resourceIdField}
+          onRefresh={() => setRefreshKey((k) => k + 1)}
+          trashMode={trashed}
+          restoreUrl={restoreUrl}
+        />
+        {/* Pagination inside the page card — connected visually */}
+        {totalPages > 1 && (
+          <Pagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full text-sm">
+      <div className="border-b border-gray-100 p-3 dark:border-white/[0.05]">
+        <Filters
+          statusFilter={statusFilter}
+          setStatusFilter={setStatusFilter}
+          setPage={setPage}
+          page={page}
+          limit={limit}
+          setLimit={setLimit}
+          dataLength={data.length}
+          totalItems={totalItems}
+          onRefresh={() => setRefreshKey((k) => k + 1)}
+          trashable={trashable}
+          trashed={trashed}
+          setTrashed={(val) => { setTrashed(val); setPage(1); }}
+        />
+      </div>
+      {/* Table — only this portion scrolls horizontally */}
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <TableHeader
             columns={columns}
             actions={actions}
@@ -559,8 +608,7 @@ export function DataTable(props) {
           </tbody>
         </table>
       </div>
-
-      {/* Pagination */}
+      {/* Pagination — inside the page's outer card, connected to the table visually */}
       {totalPages > 1 && (
         <Pagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
       )}

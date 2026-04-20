@@ -44,15 +44,31 @@ export function RowActionsCell({
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
-  
+  const btnRef = useRef(null);
+  const dropdownRef = useRef(null);
+  const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
+
   // Determine which approval actions to show based on current status
   const showApprove = hasApproval && (row.approval_status === 'pending' || row.approval_status === 'rejected');
   const showReject = hasApproval && (row.approval_status === 'pending' || row.approval_status === 'approved');
 
+  const handleToggleMenu = () => {
+    if (!isMenuOpen && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      setMenuPos({
+        top: rect.bottom + 4,
+        right: window.innerWidth - rect.right,
+      });
+    }
+    setIsMenuOpen((prev) => !prev);
+  };
+
   // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
+      const clickedBtn = btnRef.current && btnRef.current.contains(event.target);
+      const clickedMenu = dropdownRef.current && dropdownRef.current.contains(event.target);
+      if (!clickedBtn && !clickedMenu) {
         setIsMenuOpen(false);
       }
     };
@@ -98,9 +114,10 @@ export function RowActionsCell({
       )}
 
       {/* Overflow Menu - Secondary & Destructive Actions */}
-      <div className="relative" ref={menuRef}>
+      <div className="relative">
         <button
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          ref={btnRef}
+          onClick={handleToggleMenu}
           className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-700"
           title="More Actions"
           aria-label="More Actions"
@@ -110,7 +127,11 @@ export function RowActionsCell({
         </button>
 
         {isMenuOpen && (
-          <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 py-1">
+          <div
+            ref={dropdownRef}
+            style={{ position: 'fixed', top: menuPos.top, right: menuPos.right }}
+            className="w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-[9999] py-1"
+          >
             {/* Approval Actions - Show based on current status */}
             {(showApprove || showReject) && (
               <>

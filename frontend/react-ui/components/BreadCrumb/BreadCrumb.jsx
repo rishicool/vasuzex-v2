@@ -28,10 +28,10 @@ const ChevronRightIcon = (props) => (
   </svg>
 );
 
-export const BreadCrumb = ({ title, addLink, addLabel, addIcon, items }) => (
-  <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+export const BreadCrumb = ({ title, addLink, addLabel, addIcon, items, className }) => (
+  <div className={`flex flex-wrap items-center justify-between gap-2 sm:gap-3 mb-3 sm:mb-6 ${className || ''}`}>
     <div>
-      <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{title}</h2>
+      <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">{title}</h2>
       <nav className="mt-1">
         <ol className="flex items-center gap-1.5">
           {items.map((item, idx) => (

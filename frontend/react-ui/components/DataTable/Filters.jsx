@@ -25,35 +25,42 @@ export const Filters = ({
   setTrashed,
 }) => (
   <div className="flex flex-col gap-2 px-2 py-2 text-xs text-gray-600 w-full">
-    {/* Top row: rows-per-page + showing info + trash tabs + refresh */}
-    <div className="flex items-start justify-between w-full gap-2">
-      {/* Left: Rows per page and Showing info */}
-      <div className="flex flex-col items-start gap-1">
-        <div className="flex items-center gap-1 whitespace-nowrap">
-          <label className="text-xs">Rows per page:</label>
-          <select
-            value={limit}
-            onChange={(e) => {
-              setLimit(Number(e.target.value));
-              setPage(1);
-            }}
-            className="rounded border border-gray-300 bg-transparent px-2 py-1 text-xs outline-none dark:border-gray-700 dark:bg-gray-900"
-          >
-            <option value="5">5</option>
-            <option value="10">10</option>
-            <option value="25">25</option>
-            <option value="50">50</option>
-            <option value="100">100</option>
-          </select>
-        </div>
-        <span className="whitespace-nowrap mt-1">
-          Showing {totalItems === 0 ? 0 : (page - 1) * limit + 1} to{" "}
-          {Math.min(page * limit, totalItems)} of {totalItems} items
-        </span>
+    {/* Row 1: Rows-per-page selector + showing info + refresh (always fits on one line) */}
+    <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex items-center gap-1.5 shrink-0">
+        <label className="text-xs text-gray-500">Rows:</label>
+        <select
+          value={limit}
+          onChange={(e) => {
+            setLimit(Number(e.target.value));
+            setPage(1);
+          }}
+          className="rounded border border-gray-300 bg-transparent px-2 py-1 text-xs outline-none dark:border-gray-700 dark:bg-gray-900"
+        >
+          <option value="5">5</option>
+          <option value="10">10</option>
+          <option value="25">25</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+        </select>
       </div>
+      <span className="text-xs text-gray-500 shrink-0">
+        {totalItems === 0 ? "0 items" : `${(page - 1) * limit + 1}–${Math.min(page * limit, totalItems)} of ${totalItems}`}
+      </span>
+      {onRefresh && (
+        <button
+          onClick={onRefresh}
+          title="Refresh"
+          className="ml-auto p-1.5 rounded-md text-gray-500 hover:text-brand-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+        >
+          <RefreshCw className="h-4 w-4" />
+        </button>
+      )}
+    </div>
 
-      {/* Right: Status filters + Trash tabs + Refresh */}
-      <div className="flex flex-wrap items-center justify-end gap-2">
+    {/* Row 2: Status filter + Trash tabs (wraps cleanly on small screens) */}
+    {((!trashable || trashed !== 'only') || trashable) && (
+      <div className="flex items-center flex-wrap gap-2">
         {/* Status filter buttons — hidden when viewing only-trash */}
         {(!trashable || trashed !== 'only') && (
           <div className="flex items-center gap-1">
@@ -80,7 +87,7 @@ export const Filters = ({
 
         {/* Trash tabs (only shown when trashable=true) */}
         {trashable && (
-          <div className="flex items-center gap-1 border-l pl-2 border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-1">
             <Trash2 className="h-3 w-3 text-gray-400 mr-0.5" />
             <button
               onClick={() => { setTrashed('without'); setPage(1); }}
@@ -102,18 +109,7 @@ export const Filters = ({
             </button>
           </div>
         )}
-
-        {/* Refresh button — always shown */}
-        {onRefresh && (
-          <button
-            onClick={onRefresh}
-            title="Refresh"
-            className="p-1.5 rounded-md text-gray-500 hover:text-brand-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-          >
-            <RefreshCw className="h-4 w-4" />
-          </button>
-        )}
       </div>
-    </div>
+    )}
   </div>
 );

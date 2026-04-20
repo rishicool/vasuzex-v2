@@ -2,6 +2,47 @@
 
 All notable changes to Vasuzex will be documented in this file.
 
+## [2.3.15] - 2026-04-20
+
+### ✨ Added
+
+#### DataTable — Mobile Card View (`vasuzex/react`)
+
+- **New `mobileCardView` prop** — When `mobileCardView={true}`, DataTable renders `MobileCardList` instead of the standard table on viewports narrower than 640px (Tailwind `sm` breakpoint)
+- **`MobileCardList` component** — Stacked card layout optimised for touch
+  - Column priority system: mark columns as `priority="primary"` (shown full-width, no label), `priority="secondary"` (compact label:value rows), or omit to auto-assign first 3 as primary and rest as secondary
+  - Supports full action set: view, edit, delete, hard-delete (🔥), and restore actions
+  - Skeleton loading state with `animate-pulse` placeholders
+  - Empty-state text support via `emptyText` prop
+- **New `useMobileDetect` hook** — `window.matchMedia`-based viewport detection; no resize listener polling, reacts instantly, SSR-safe fallback
+
+#### Pagination — Mobile Responsive Layout (`vasuzex/react`)
+
+- **Mobile compact mode** (visible on `sm:hidden`): Prev / "Page X of Y" + jump-to-page input / Next
+  - Jump-to-page input: type a page number and press Enter (or blur) to navigate directly
+- **Desktop unchanged**: full numbered page buttons with ellipsis remain as before
+
+#### BreadCrumb — Responsive Props (`vasuzex/react`)
+
+- Added `className` prop for external style overrides
+- Responsive typography and spacing: `text-lg sm:text-xl`, `gap-2 sm:gap-3`, `mb-3 sm:mb-6`
+
+### 🐛 Fixed
+
+#### Filters — Responsive Layout (`vasuzex/react`)
+
+- Moved refresh button inline with rows-per-page selector and showing info (no longer isolated in a separate row)
+- Shortened label: "Rows:" instead of "Rows per page:" — saves horizontal space on small screens
+- Compact showing info format: `1–10 of 50` instead of `Showing 1 to 10 of 50 items`
+
+#### RowActionsCell — Dropdown Clipping Fix (`vasuzex/react`)
+
+- **Root cause**: Dropdown was positioned `absolute` inside the table cell, causing it to be clipped by `overflow-x-auto` on the table container
+- **Fix**: Dropdown now uses `position: fixed` anchored to the trigger button via `getBoundingClientRect()`, with `z-index: 9999` — never clipped by any overflow parent
+- Fixed click-outside detection: separate `btnRef` and `dropdownRef` so clicking the button or inside the menu never incorrectly closes the dropdown
+
+---
+
 ## [2.3.14] - 2026-04-08
 
 ### 🐛 Fixed
